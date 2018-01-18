@@ -5,7 +5,7 @@ setup(
     version='0.0.2',
     packages=[''],
     url='https://illo.rocks',
-    license='MIT',
+    license='Creative Commons Attribution-NonCommercial-ShareAlike 2.0 Germany License',
     author='Oliver Haag',
     author_email='stockscreener@illo.rocks',
     description='', requires=['requests', 'pymongo']
