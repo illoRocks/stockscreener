@@ -84,10 +84,48 @@ sd.loggingBasicConfig(
 * easy to use as a cronjob
 * pip
 
+## Example Schema
+
+```json
+// collection: stocks
+{
+"_id" : "796343",
+  "edgar_path" : [
+    {
+      "log" : null,
+      "form" : "8-K",
+      "path" : "edgar/data/796343/0001104659-05-040250.txt",
+      "date" : "2005-08-18"
+  }
+  ],
+  "name" : "ADOBE SYSTEMS INC",
+  "lastDocument" : "2006-10-11",
+  "lastUpdate" : ISODate("2018-01-18T19:27:47.797+07:00"),
+  "NumberOfDocuments" : 5,
+  "fillings" : {
+    "DeferredIncomeTaxes" : [
+      {
+        "endDate" : "2005-09-02",
+        "startDate" : "2004-12-04",
+        "value" : -40293000.0,
+        "updated" : "2005-10-05"
+      },
+      {
+        "updated" : "2006-02-08",
+        "startDate" : "2003-11-29",
+        "endDate" : "2004-12-03",
+        "value" : 46270000
+      }
+    ]
+  }
+}
+```
+
+Take account of values for a position with the same `startDate` and `endDate`. The `updated`field show you the latest.
+
 ## LICENSE
 
-Please fell free to use this software for non-commercial projects!
+Please feel free to use this software for non-commercial projects!
 
 [![Creative Commons License](https://i.creativecommons.org/l/by-nc-sa/2.0/de/88x31.png)](http://creativecommons.org/licenses/by-nc-sa/2.0/de/)
-
 This work is licensed under a [Creative Commons Attribution-NonCommercial-ShareAlike 2.0 Germany License](http://creativecommons.org/licenses/by-nc-sa/2.0/de/)
