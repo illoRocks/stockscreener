@@ -2,7 +2,7 @@
 
 Download XBRL from the SEC and store it to MongoDB or as local files.
 
-### Features
+## Features
 
 * Optimized for multiprozessing
 * MongoDB as Database
