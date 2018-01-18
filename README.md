@@ -41,12 +41,7 @@ sd.save_idx()
 
 ### 2.1 Download Reports from the EDGAR server and save it to MongoDB | Singleprocess
 
-Specify the company:
-`cik`: any valid central index key,
-`ticker`: any valid ticker,
-`name`: any valid company name
-
-Specify only one identifier. If more are given cik will be used.
+Specify the company with `cik`, `ticker` or `name`. It should be a valid EDGAR string. Check the existing database or the sec website for this. Specify only one identifier. If more are given cik will be used.
 
 ```python
 import os
