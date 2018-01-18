@@ -80,6 +80,7 @@ sd.loggingBasicConfig(
 
 * make the financial positions more readable and useable for further analyses
 * improve logging system
+* database to CSV
 * command line interface
 * easy to use as a cronjob
 * pip
