@@ -132,8 +132,6 @@ class DownloadFilings:
             elif pattern.match(str(child.text)):
                 data[child.attrib['contextRef']][child.tag] = num(child.text)
 
-        logger.debug(1, round(time.time() - t))
-        t = time.time()
 
         content = defaultdict(dict)
         for ref, values in data.items():

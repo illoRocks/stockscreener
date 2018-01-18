@@ -85,10 +85,10 @@ class SecDigger(SecIdx, MongoHelper):
         if cik:
             query.append(
                 {'$match': {'_id': {'$in': [cik] if type(cik) == str else cik}}})
-        if ticker:
+        elif ticker:
             query.append(
                 {'$match': {'ticker': {'$in': [ticker] if type(ticker) == str else ticker}}})
-        if name:
+        elif name:
             query.append(
                 {'$match': {'name': {'$in': [name] if type(name) == str else name}}})
 
