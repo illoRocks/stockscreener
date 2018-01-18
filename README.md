@@ -128,4 +128,5 @@ Take account of values for a position with the same `startDate` and `endDate`. T
 Please feel free to use this software for non-commercial projects!
 
 [![Creative Commons License](https://i.creativecommons.org/l/by-nc-sa/2.0/de/88x31.png)](http://creativecommons.org/licenses/by-nc-sa/2.0/de/)
+
 This work is licensed under a [Creative Commons Attribution-NonCommercial-ShareAlike 2.0 Germany License](http://creativecommons.org/licenses/by-nc-sa/2.0/de/)
