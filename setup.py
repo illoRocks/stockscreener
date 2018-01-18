@@ -8,5 +8,6 @@ setup(
     license='Creative Commons Attribution-NonCommercial-ShareAlike 2.0 Germany License',
     author='Oliver Haag',
     author_email='stockscreener@illo.rocks',
-    description='', requires=['requests', 'pymongo']
+    description='', 
+    requires=['requests', 'pymongo']
 )
