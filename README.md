@@ -100,7 +100,7 @@ sd.loggingBasicConfig(
   ],
   "name" : "ADOBE SYSTEMS INC",
   "lastDocument" : "2006-10-11",
-  "lastUpdate" : ISODate("2018-01-18T19:27:47.797+07:00"),
+  "lastUpdate" : "2018-01-18T19:27:47.797+07:00",
   "NumberOfDocuments" : 5,
   "fillings" : {
     "DeferredIncomeTaxes" : [
