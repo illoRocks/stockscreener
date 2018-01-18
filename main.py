@@ -1,9 +1,29 @@
-from stockscreener.edgar_idx import SecIdx
+from stockscreener.sec_digger import SecDigger
 
-if __name__ == "__main__":
-  print("init Database")
-  i = SecIdx()
-  i.connect(database='sec_digger', collection='stocks')
-  i.download_idx(verbose=True))
-  i.save_idx()
-  print("finish")
+# use SecDigger
+sd = SecDigger()
+
+# connect to Database
+sd.connect(database='sec_digger', collection='stocks')
+
+# optional settings
+sd.verbose = True
+
+# Init Database / apply only once!
+# sd.download_idx()
+# sd.save_idx()
+# print(sd)
+
+# if index allredy exist
+sd.download_idx(whole=False)
+sd.save_idx()
+print(sd)
+
+# download filings
+options = {
+  'multiprocessing': False,
+  'cik': '796343',
+  'save': False
+}
+sd.get_files_from_web(**options)  # eingrenzug
+print('\n', m)

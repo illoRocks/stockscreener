@@ -16,17 +16,26 @@ from urllib.request import urlopen
 from zipfile import ZipFile
 from urllib.request import urlopen, build_opener
 from zipfile import ZipFile
+import logging
 
-from mongo_db import MongoDigger
+from stockscreener.mongo_db import MongoHelper
 
-class SecIdx(MongoDigger):
+
+import logging
+logger = logging.getLogger(__name__)
+
+
+class SecIdx(MongoHelper):
     def __init__(self):
         super().__init__()
         self.idx = []
         self.session = {}
+        logger.debug('init SecIdx')
 
-    def download_idx(self, whole=True, verbose=False, quarterly_files=list()):
+    def download_idx(self, whole=True, quarterly_files=list()):
         """if whole then 1993 until the most recent quarter"""
+
+        logger.debug('run download_idx')
 
         if type(quarterly_files) is not list:
             raise TypeError('expect list!')
@@ -44,12 +53,14 @@ class SecIdx(MongoDigger):
             quarterly_files = ['https://www.sec.gov/Archives/edgar/full-index/%d/%s/xbrl.zip' % (x[0], x[1]) for x in
                                history]
             quarterly_files.sort()
-            quarterly_files.append('https://www.sec.gov/Archives/edgar/full-index/xbrl.zip')
+            quarterly_files.append(
+                'https://www.sec.gov/Archives/edgar/full-index/xbrl.zip')
 
-            if verbose:
-                print('Start year: 1993')
+            logging.debug('Start year: 1993')
 
-        elif quarterly_files is None:
+        elif len(quarterly_files) == 0:
+            logging.debug("use current quarter")
+
             if current_quarter == 1:
                 last_quarter = 4
                 last_year = current_year - 1
@@ -59,22 +70,25 @@ class SecIdx(MongoDigger):
                 last_year = current_year
 
             quarterly_files = [
-                'https://www.sec.gov/Archives/edgar/full-index/%d/QTR%s/xbrl.zip' % (last_year, last_quarter),
+                'https://www.sec.gov/Archives/edgar/full-index/%d/QTR%s/xbrl.zip' % (
+                    last_year, last_quarter),
                 'https://www.sec.gov/Archives/edgar/full-index/xbrl.zip']
 
-            if verbose:
-                print('Start -> Year: %s Quarter: %s' % (last_year, last_quarter))
+            logging.debug('Start -> Year: %s Quarter: %s' % (last_year, last_quarter))
 
         for url in quarterly_files:
-            print(url)
+            logging.debug(url)
             try:
                 s = requests.Session()
                 s.trust_env = False
                 response = s.get(url, stream=True)
                 if response.status_code == 503:
                     response.raise_for_status()
+            except requests.exceptions.ConnectionError:
+                logging.debug("Please check the internet connection!")
+                quit()
             except requests.exceptions.HTTPError:
-                print("oops something unexpected happened!", url)
+                logging.debug("oops something unexpected happened!", url)
                 continue
 
             with ZipFile(BytesIO(response.content)) as zfile:
@@ -82,41 +96,34 @@ class SecIdx(MongoDigger):
                     for line in z:
                         if '----' in line.decode('latin-1'):
                             break
-                    self.idx.extend([tuple(line.decode('latin-1').rstrip().split('|')) for line in z])
+                    self.idx.extend(
+                        [tuple(line.decode('latin-1').rstrip().split('|')) for line in z])
 
-            if verbose:
-                print('File downloaded')
+            logging.debug('File downloaded')
 
     def save_idx(self):
         """save idx to mongodb"""
 
         if self.col == 'Not connected to database!':
-            print(self.col)
+            logging.debug(self.col)
+            quit()
 
         elif len(self.idx) == 0:
-            print('need files!')
+            logging.debug('need files!')
 
         else:
             idx_dict = defaultdict(dict)
-            print("processing...")
+            logging.debug("write data to database...")
             for cik, name, form, date, path in self.idx:
-                # acc = path.split('/')[-1][:-4]
-                # self.col.update({'_id': cik},
-                #                 {'$set': {'name': name,
-                #                           'edgar_path.' + acc + '.form': form,
-                #                           'edgar_path.' + acc + '.date': date,
-                #                           'edgar_path.' + acc + '.log': None}},
-                #                 upsert=True)
-
                 self.col.update({'_id': cik},
                                 {'$set': {'name': name},
                                  '$addToSet': {'edgar_path': {
-                                                'form': form,
-                                                'date': date,
-                                                'path': path,
-                                                'log': None}}},
+                                     'form': form,
+                                     'date': date,
+                                     'path': path,
+                                     'log': None}}},
                                 upsert=True)
-            print("saved all paths")
+            logging.debug("saved all paths")
 
     def __str__(self):
         if len(self.idx) == 0:
@@ -127,11 +134,16 @@ class SecIdx(MongoDigger):
 
 if __name__ == '__main__':
     i = SecIdx()
-    i.save_idx() # Not connected to database!
-    print(i)  # no files!
-    i.download_idx(verbose=True) #, quarterly_files=['https://www.sec.gov/Archives/edgar/full-index/2012/QTR3/xbrl.zip', ])
-    print(i) # paths: NUMBER
+    i.save_idx()  # Not connected to database!
+    logging.debug(i)  # no files!
+    # , quarterly_files=['https://www.sec.gov/Archives/edgar/full-index/2012/QTR3/xbrl.zip', ])
+    i.download_idx()
+    logging.debug(i)  # paths: NUMBER
     i.save_idx()  # Not connected to database!
     i.connect(database='sec_digger', collection='stocks')
     i.save_idx()
-    print("finish")
+    logging.debug("finish")
+
+    # # Download current Index
+    # i.download_idx(whole=False)
+    # i.save_idx()

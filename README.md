@@ -1,39 +1,98 @@
 # stockscreener
 
-## Notification
+Download XBRL from the SEC and store it to MongoDB or as local files.
 
-High memory usage ( >=8Gb )
+## Features
+
+Optimized for multiprozessing
+MongoDB as Database
+
+### Dependencies
+
+pymongo
 
 ## Usage
 
 Make sure that MongoDB is running on your machine!
 
-### Initialize the Database
+### 1. Initialize the Database
 
-Download all paths and save it to MongoDB
+Download all paths from 1993 from EDGAR and save it to MongoDB
 
 ```python
-from stockscreener.edgar_idx import SecIdx
+from stockscreener.sec_digger import SecDigger
 
-print("init Database")
-i = SecIdx()
-i.connect(database='sec_digger', collection='stocks')
-i.download_idx(verbose=True))
-i.save_idx()
-print("finish")
+sd = SecDigger()
+
+# connect to Database
+sd.connect(database='sec_digger', collection='stocks')
+
+# Init Database / apply only once!
+sd.download_idx()
+sd.save_idx()
 ```
 
-!it take a while to write the data to the database! 
+if database is allready initialized download only the current and last quarter
 
-### Download Reports from the EDGAR server and save it to MongoDB
+```python
+sd.download_idx(whole=False)
+sd.save_idx()
+```
 
-(coming soon)
+### 2.1 Download Reports from the EDGAR server and save it to MongoDB | Singleprocess
 
+Specify the company:
+`cik`: any valid central index key,
+`ticker`: any valid ticker,
+`name`: any valid company name
 
-1. XBRL-Links runterladen
-	1.1 falls zum ersten mal dann: edgar_idx_all.py
-	1.2 wenn sqlite vorhanden, dann: edgar_idx_current.py
-2. Dateien lokal speichern mit 
-		load_files.py -> direkt in konsole schreiben 
-		wird parallel auf allen Kernen ausgeführt
-3. XBRL aufbereiten: clean_xbrl
+Specify only one identifier. If more are given cik will be used.
+
+```python
+import os
+WORKING_DIR = os.path.dirname(os.path.abspath(__file__))
+
+options = {
+  'cik': '796343',
+  'save': True,
+  'local_file_path': '%s/xbrl' % WORKING_DIR
+}
+sd.get_files_from_web(**options)
+```
+
+If save is true the xbrl will be written on the `local_file_path`. Please use a absolut path!
+
+The report will automaticly written on the given collection. You have to use the same credentials as befor.
+
+### 2.2 Download Reports from the EDGAR server and save it to MongoDB | Multiprocessing
+
+not tested!
+
+### Configure the Handler
+
+#### Set logging options
+
+use the [options](https://docs.python.org/3/library/logging.html) from logging module
+
+```python
+sd.loggingBasicConfig(
+  level=logging.DEBUG,
+  format='%(levelname)s/%(module)s/%(funcName)s %(message)s'
+  )
+```
+
+### ROADMAP
+
+* make the financial positions more readable and useable for further analyses
+* improve logging system
+* command line interface
+* easy to use as a cronjob
+* pip
+
+## LICENSE
+
+Please fell free to use this software for non-commercial projects!
+
+[![Creative Commons License](https://i.creativecommons.org/l/by-nc-sa/2.0/de/88x31.png)](http://creativecommons.org/licenses/by-nc-sa/2.0/de/)
+
+This work is licensed under a [Creative Commons Attribution-NonCommercial-ShareAlike 2.0 Germany License](http://creativecommons.org/licenses/by-nc-sa/2.0/de/)

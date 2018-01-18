@@ -5,33 +5,14 @@ from _collections import defaultdict
 from datetime import datetime
 from io import StringIO
 from os import makedirs, path
-from pprint import pprint
 from re import search, sub, findall, IGNORECASE, compile
 import time
 import requests
+import logging
+
+logger = logging.getLogger(__name__)
 
 
-def ctime(t, digit=1):
-    summary = 'Verbrauchte Zeit: '
-    w = False
-    n = 1
-    if type(t) == list:
-        for s in t:
-            if w:
-                summary += 't%s-%s\t' % (n, round(s-w, digit))
-            w = s
-            n += 1
-    elif type(t) == dict:
-        for s in t:
-            if w:
-                summary += '%s - %ssec | \t' % (s, round(t[s]-w, digit))
-            w = t[s]
-            n += 1
-    else:
-        print('TypeError: variable is %s. It must be dict or list!' % type(t))
-        return
-    summary += '\t' + str(type(t))
-    print(summary)
 
 pattern = compile("^(-[0-9]+)|([0-9]+)$")
 
@@ -44,11 +25,12 @@ class DownloadFilings:
         self.date = date
         self.accession = url.split('/')[-1][:-4]
         self.files = {}
-        self.base_dir = path.dirname(path.abspath(__file__))
 
-    def download(self, verbose=False):
+    def download(self):
         """download and save sec files"""
 
+        logger.debug(self.url)
+        
         try:
             resp = requests.get(self.url, stream=True)
 
@@ -67,7 +49,7 @@ class DownloadFilings:
                         search(b'(<xbrl>|<sec-header>)', line, flags=IGNORECASE):
                     self.files[filename] = ''
                     commit = True
-                    if verbose: print(filename)
+                    logger.debug(filename)
 
                 if commit and not start_xml and search(b'(<?xml)', line, flags=IGNORECASE):
                     start_xml = True
@@ -85,7 +67,7 @@ class DownloadFilings:
             resp.close()
 
         except Exception as inst:
-            return 'error in requests.get(%s)\n\t%s' % (self.url, inst.args)
+            logging.error('error in requests\n\t%s' % inst.args)
 
     def clean_file(self, filename):
 
@@ -97,11 +79,11 @@ class DownloadFilings:
         self.files[filename] = sub('&', '', self.files[filename])
         self.files[filename] = sub('(us.{1,4}gaap:)', 'us-gaap:', self.files[filename])
 
-    def save_documents(self, main_path='temp'):
-        """save whole document in path"""
+    def save_documents(self, path):
+        """save whole documents in path"""
 
-        file_path = self.base_dir + '/' + main_path + '/' + self.accession
-        # print(file_path)
+        file_path = path + '/' + self.cik + '/' + self.accession
+        logger.debug('path: %s' % file_path)
         makedirs(file_path, exist_ok=True)
         for filename, txt in self.files.items():
             with open(file_path + '/' + filename, 'w') as file:
@@ -111,24 +93,18 @@ class DownloadFilings:
         """create SAX-Parser and parse the xbrl"""
 
         t = time.time()
-        t_path = path.join(self.base_dir, "logs/filenames.txt")
         xbrl = False
         for f in self.files:
             if not search('(header.txt|FilingSummary|\.xsd|defnref|(pre|lab|def|cal|ref|R[0-9]{1,3})\.xml)', f):
                 xbrl = True
-                with open(t_path, 'a') as o:
-                    o.write('%s: %s\n' % (f, self.url))
+                logger.info('%s: %s\n' % (f, self.url))
                 filename = f
                 self.clean_file(filename=filename)
                 break
         if not xbrl:
             f = ''.join('\t' + f + '\n' for f in self.files)
-            with open(t_path, 'a') as o:
-                o.write('%s: \n%s' % ('no xbrl found. please change criterion', f))
+            logger.warning('no xbrl found. please change criterion: \n%s\t%s' % (f, self.url))
             return 'no xbrl found!'
-
-        print(1, round(time.time()-t))
-        t = time.time()
 
         it = ET.iterparse(StringIO(self.files[filename]))
         # strip all namespaces
@@ -136,9 +112,6 @@ class DownloadFilings:
             if '}' in el.tag:
                 el.tag = el.tag.split('}', 1)[1]
         root = it.root
-
-        print(1, round(time.time() - t))
-        t = time.time()
 
         def num(s):
             try:
@@ -159,7 +132,7 @@ class DownloadFilings:
             elif pattern.match(str(child.text)):
                 data[child.attrib['contextRef']][child.tag] = num(child.text)
 
-        print(1, round(time.time() - t))
+        logger.debug(1, round(time.time() - t))
         t = time.time()
 
         content = defaultdict(dict)
