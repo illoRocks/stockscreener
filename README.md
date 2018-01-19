@@ -89,6 +89,26 @@ sd.get_files_from_web(
 )
 ```
 
+### Use CLI
+
+```sh
+python3 run.py --init --debug
+```
+
+```sh
+python3 run.py -port 27017 -host localhost -cik 796343
+```
+
+```sh
+python3 run.py -port 27017 -host localhost -multi 6 -nameRegex "^ibm" "coca.*cola"
+```
+
+use `--help` for more informations
+
+```sh
+python3 run.py --help
+```
+
 ### logging
 
 use the [options](https://docs.python.org/3/library/logging.html) from logging module
@@ -111,8 +131,7 @@ Logging system is not well implemented for multiprocessing!
 * improve logging system
 * parse local xbrl
 * database to CSV
-* command line interface + doku
-* easy setup for automated process
+* use config file for settings
 * pip
 
 ## Example Schema
