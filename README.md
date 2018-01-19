@@ -8,6 +8,8 @@ This project is under activ development!
 
 * Optimized for multiprozessing
 * MongoDB as Database
+* Low memory consumption
+* CLI
 
 ### Dependencies
 
@@ -99,14 +101,13 @@ Logging system is not well implemented for multiprocessing!
 * improve logging system
 * parse local xbrl
 * database to CSV
-* command line interface
+* command line interface + doku
 * easy setup for automated process
 * pip
 
 ## Example Schema
 
 ```json
-// collection: stocks
 {
 "_id" : "796343",
   "edgar_path" : [
@@ -140,6 +141,8 @@ Logging system is not well implemented for multiprocessing!
 }
 ```
 
+Take account of values for a position with the same `startDate`'s and `endDate`'s. The `updated` field shows the latest.
+
 ## Usefull queries
 
 ### Unwind EDGAR paths
@@ -161,8 +164,6 @@ db.edgarPath.aggregate([
         }}
 ])
 ```
-
-Take account of values for a position with the same `startDate` and `endDate`. The `updated`field show you the latest.
 
 ## LICENSE
 
