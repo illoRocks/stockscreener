@@ -191,7 +191,6 @@ class SecDigger(SecIdx, MongoHelper):
 
                 logger.info('Unordered results using pool.imap_unordered():')
                 for data, t in imap_unordered_it:
-                    logger.info(data['edgar_path'])
                     store_result(data)
                     self.session['processed'] += 1
                     # ctime(t)

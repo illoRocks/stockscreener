@@ -51,7 +51,6 @@ class XbrlCrawler:
                         search(b'(<xbrl>|<sec-header>)', line, flags=IGNORECASE):
                     self.files[filename] = ''
                     commit = True
-                    logger.debug(filename)
 
                 if commit and not start_xml and search(b'(<?xml)', line, flags=IGNORECASE):
                     start_xml = True
