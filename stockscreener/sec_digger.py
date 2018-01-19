@@ -7,6 +7,7 @@ import time
 from multiprocessing import Pool
 import logging
 import re
+import pymongo
 
 from .helper import ctime
 from .edgar_idx import SecIdx
@@ -175,6 +176,10 @@ class SecDigger(SecIdx, MongoHelper):
                     self.col_companies.update_one(**data['query'])
                 except TypeError:
                     logger.error(data['query'])
+                    quit()
+                except pymongo.errors.WriteError as err:
+                    logger.error(data['query'])
+                    logger.error('Please check the query: WriteError %s' % err)
                     quit()
 
                 self.col_edgar_path.update({'_id': data['cik'], 'edgar_path.path': data['edgar_path']},

@@ -31,8 +31,6 @@ class XbrlCrawler:
     def download(self):
         """download and save sec files"""
 
-        logger.debug(self.url)
-
         try:
             resp = requests.get(self.url, stream=True)
 
@@ -110,7 +108,7 @@ class XbrlCrawler:
         for f in self.files:
             if not search('(header.txt|FilingSummary|\.xsd|defnref|(pre|lab|def|cal|ref|R[0-9]{1,3})\.xml)', f):
                 xbrl = True
-                logger.info('%s: %s\n' % (f, self.url))
+                logger.info('%s: %s' % (f, self.url))
                 filename = f
                 self.clean_file(filename=filename)
                 break
@@ -138,6 +136,7 @@ class XbrlCrawler:
         data = defaultdict(dict)
         misc = {}
         for child in root:
+            child.tag = child.tag.replace(".","")
             if child.tag == 'context':
                 for period in child.findall('period'):
                     for date in period:
