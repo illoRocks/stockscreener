@@ -153,4 +153,4 @@ sd.get_files_from_web(
 # python3 run.py --init --debug
 # python3 run.py -port 27017 -host localhost -multi 9 --debug -cik 796343
 # python3 run.py -port 27017 -host localhost -multi 9 --debug -nameRegex "coca cola" -limit 5
-# python3 run.py -cikPath dowjones.txt
+# python3 run.py -cikPath dowjones.txt --skipID
