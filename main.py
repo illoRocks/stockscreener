@@ -22,13 +22,13 @@ sd.connect(
     port=27017
 )
 
-# Initialize the Database / apply only once!
-sd.download_idx(init=True)
-sd.save_idx()
-
-# # if index allredy exist
-# sd.download_idx()
+# # Initialize the Database / apply only once!
+# sd.download_idx(init=True)
 # sd.save_idx()
+
+# if index allredy exist
+sd.download_idx()
+sd.save_idx()
 
 # # download filings with singleprocessing
 # sd.get_files_from_web(

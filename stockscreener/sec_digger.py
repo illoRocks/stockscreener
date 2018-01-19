@@ -81,6 +81,7 @@ class SecDigger(SecIdx, MongoHelper):
         name_regex=None,
         ticker=None,
         cik=None,
+        cik_path=None,
         save=False,
         save_to_db=True,
         number_of_files=-1,
@@ -92,11 +93,12 @@ class SecDigger(SecIdx, MongoHelper):
             name = %s
             ticker = %s 
             cik = %s 
+            cik_path = %s
             save = %s 
             save_to_db = %s 
             number_of_files = %s 
             local_file_path = %s
-            ''' % (multiprocessing, name, ticker, cik, save, save_to_db, number_of_files, local_file_path))
+            ''' % (multiprocessing, name, ticker, cik, cik_path, save, save_to_db, number_of_files, local_file_path))
 
         if not self.connected:
             logger.error(self.status)
@@ -123,7 +125,19 @@ class SecDigger(SecIdx, MongoHelper):
             for r in name_regex:
                 regx.append(re.compile(r, re.IGNORECASE))
             query.append(
-                {'$match': {'name': {'$in': regx}}})        
+                {'$match': {'name': {'$in': regx}}})
+        elif cik_path:
+            ciks = []
+            with open(cik_path, 'r') as file:
+                for item in file:
+                    ciks.append(item.replace("\n",""))
+            query.append(
+                {'$match': {'_id': {'$in': ciks}}})
+        else:
+            logger.error("no company identifier")
+            quit()
+
+        logger.debug(query)
 
         if number_of_files > 0:
             query.append({'$limit': number_of_files})
@@ -165,7 +179,6 @@ class SecDigger(SecIdx, MongoHelper):
 
                 self.col_edgar_path.update({'_id': data['cik'], 'edgar_path.path': data['edgar_path']},
                                            {'$set': {'edgar_path.$.log': 'stored'}}, False, True)
-
 
             self.session['processed'] += 1
             logger.info(" verstrichen: %s min\tVerarbeitet: %s Stücke" %

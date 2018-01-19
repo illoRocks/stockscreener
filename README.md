@@ -103,10 +103,39 @@ python3 run.py -port 27017 -host localhost -cik 796343
 python3 run.py -port 27017 -host localhost -multi 6 -nameRegex "^ibm" "coca.*cola"
 ```
 
+use a text file with central index keys. seperated by line breaks.
+
+```sh
+python3 run.py -cikPath dowjones.txt
+```
+
 use `--help` for more informations
 
 ```sh
 python3 run.py --help
+```
+
+#### config.ini
+
+most settings could be set in a `config.ini` file.
+
+```ini
+[DATABASE]
+Client = Mongodb
+Port = 27017
+Host = localhost
+
+[LOGGING]
+Debug = true
+; ERROR = 40, WARNING = 30, INFO = 20 or DEBUG = 10
+Level = 10
+
+[PARSER_OPTIONS]
+save = false
+local_file_path = /test
+save_to_db = true
+multiprocessing = 9
+number_of_files = -1
 ```
 
 ### logging
@@ -131,7 +160,6 @@ Logging system is not well implemented for multiprocessing!
 * improve logging system
 * parse local xbrl
 * database to CSV
-* use config file for settings
 * pip
 
 ## Example Schema
@@ -201,46 +229,6 @@ db.edgarPath.find({ name: { $in: [
     /wal mart/i,
     /apple/i,
 ] }})
-```
-
-```json
-db.edgarPath.find({ name: { $in: [
-    /wal mart/i,
-    /apple/i,
-] }})
-// , { cik: { $in: [ 
-//     "66740",// /3M/i,
-//     "4962", // /American Express/i,
-//     "320193", // /Apple/i,
-//     "12927", // /Boeing/i,
-//     "18230", // /Caterpillar/i,
-//     "93410", // /Chevron/i,
-//     "858877", // /Cisco/i,
-//     "804055", // /Coca-Cola/i,
-//     "1666700", // /DowDuPont/i,
-//     "34088", // /ExxonMobil/i,
-//     "40545", // /General Electric/i,
-//     "886982", "822977", // /Goldman Sachs/i,
-//     "354950", // /Home Depot/i,
-//     "1225307", // /IBM/i,
-//     "50863", // /Intel/i,
-//     "200406", // /Johnson Johnson/i,
-//     "19617", // /JPMorgan Chase/i,
-//     "63908", // /McDonalds/i,
-//     "310158", // /Merck/i,
-//     "789019", // /Microsoft/i,
-//     "320187", // /Nike/i,
-//     "78003", // /Pfizer/i,
-//     "80424", // /Proctor Gamble/i,
-//     "86312", // /Travelers/i,
-//     "101829", // /United Technologies/i,
-//     "731766", // /UnitedHealth/i,
-//     "732712", // /Verizon/i,
-//     "1403161", // /Visa/i,
-//     "104169", // /Walmart/i,
-//     "1001039" // /Walt Disney/i
-// ]}}
-// )
 ```
 
 ## LICENSE
