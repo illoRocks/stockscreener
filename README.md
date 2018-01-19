@@ -50,7 +50,7 @@ sd.save_idx()
 
 ### 2.1 Download Reports from the EDGAR server and save it to MongoDB | Singleprocess
 
-Specify the company with `cik`, `ticker` or `name`. It should be a valid EDGAR string. Check the existing database or the sec website for this. Specify only one identifier. If more are given then `cik` will be used. Identifier could be a string or an array with strings.
+Specify the company with `cik`, `name` or `name_regex` of the company. It should be a valid EDGAR string. Check the existing database or the sec website for this. Specify only one identifier. If more are given then `cik` will be used. Identifier could be a string or an array with strings.
 
 ```python
 import os
@@ -66,11 +66,21 @@ sd.get_files_from_web(
 
 If `save=True` then the xbrl file will be written on the `local_file_path`. Please use a absolut path! If you only want to download the files and save it to local storage `save_to_db=False` as option. Use `number_of_files` as argument for limitation of downloads.
 
+#### Regex examples
+
+IGNORECASE is used.
+
+```python
+sd.get_files_from_web(
+  name_regex = "coca.*cola" # ["CoCa CoLa", "^ibm"]
+)
+```
+
 ### 2.2 Download Reports from the EDGAR server and save it to MongoDB | Multiprocessing
 
 specify the company: read 2.1
 
-`multiprocessing` could be boolean or integer. If boolean then the program use 4 worker by default else the programm use the the given integer for numbers of worker.
+`multiprocessing` could be boolean or integer. If `True` then the program use 4 worker by default else the programm use the the given integer for numbers of worker.
 
 ```python
 sd.get_files_from_web(
@@ -163,6 +173,55 @@ db.edgarPath.aggregate([
             '_id': 0
         }}
 ])
+```
+
+### search for companies by name
+
+```json
+db.edgarPath.find({ name: { $in: [
+    /wal mart/i,
+    /apple/i,
+] }})
+```
+
+```json
+db.edgarPath.find({ name: { $in: [
+    /wal mart/i,
+    /apple/i,
+] }})
+// , { cik: { $in: [ 
+//     "66740",// /3M/i,
+//     "4962", // /American Express/i,
+//     "320193", // /Apple/i,
+//     "12927", // /Boeing/i,
+//     "18230", // /Caterpillar/i,
+//     "93410", // /Chevron/i,
+//     "858877", // /Cisco/i,
+//     "804055", // /Coca-Cola/i,
+//     "1666700", // /DowDuPont/i,
+//     "34088", // /ExxonMobil/i,
+//     "40545", // /General Electric/i,
+//     "886982", "822977", // /Goldman Sachs/i,
+//     "354950", // /Home Depot/i,
+//     "1225307", // /IBM/i,
+//     "50863", // /Intel/i,
+//     "200406", // /Johnson Johnson/i,
+//     "19617", // /JPMorgan Chase/i,
+//     "63908", // /McDonalds/i,
+//     "310158", // /Merck/i,
+//     "789019", // /Microsoft/i,
+//     "320187", // /Nike/i,
+//     "78003", // /Pfizer/i,
+//     "80424", // /Proctor Gamble/i,
+//     "86312", // /Travelers/i,
+//     "101829", // /United Technologies/i,
+//     "731766", // /UnitedHealth/i,
+//     "732712", // /Verizon/i,
+//     "1403161", // /Visa/i,
+//     "104169", // /Walmart/i,
+//     "1001039" // /Walt Disney/i
+// ]}}
+// )
 ```
 
 ## LICENSE

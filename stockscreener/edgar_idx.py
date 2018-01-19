@@ -30,12 +30,9 @@ class SecIdx(MongoHelper):
         super().__init__()
         self.idx = []
         self.session = {}
-        logger.debug('init SecIdx')
 
     def download_idx(self, init=False, quarterly_files=list()):
         """if init then 1993 until the most recent quarter"""
-
-        logger.debug('run download_idx')
 
         if type(quarterly_files) is not list:
             raise TypeError('expect list!')
@@ -44,6 +41,7 @@ class SecIdx(MongoHelper):
         current_quarter = (datetime.date.today().month - 1) // 3 + 1
 
         if init and len(quarterly_files) == 0:
+            logger.info('initialize database')
             start_year = 1993
             years = list(range(start_year, current_year))
             quarters = ['QTR1', 'QTR2', 'QTR3', 'QTR4']
@@ -59,7 +57,7 @@ class SecIdx(MongoHelper):
             logging.debug('Start year: 1993')
 
         elif len(quarterly_files) == 0:
-            logging.debug("use current quarter")
+            logging.debug("download index of current quarter")
 
             if current_quarter == 1:
                 last_quarter = 4
@@ -73,9 +71,6 @@ class SecIdx(MongoHelper):
                 'https://www.sec.gov/Archives/edgar/full-index/%d/QTR%s/xbrl.zip' % (
                     last_year, last_quarter),
                 'https://www.sec.gov/Archives/edgar/full-index/xbrl.zip']
-
-            logging.debug('Start -> Year: %s Quarter: %s' %
-                          (last_year, last_quarter))
 
         for url in quarterly_files:
             logging.debug(url)

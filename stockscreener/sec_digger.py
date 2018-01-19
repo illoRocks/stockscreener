@@ -6,6 +6,7 @@ import io
 import time
 from multiprocessing import Pool
 import logging
+import re
 
 from .helper import ctime
 from .edgar_idx import SecIdx
@@ -14,6 +15,9 @@ from .download_filings import XbrlCrawler
 
 
 logger = logging.getLogger(__name__)
+
+# disable log messages from the Requests library
+logging.getLogger("requests").setLevel(logging.WARNING)
 
 
 # def calculatestar(kwargs):
@@ -73,7 +77,8 @@ class SecDigger(SecIdx, MongoHelper):
     def get_files_from_web(
         self,
         multiprocessing=False,
-        name=None, 
+        name=None,
+        name_regex=None,
         ticker=None,
         cik=None,
         save=False,
@@ -81,6 +86,18 @@ class SecDigger(SecIdx, MongoHelper):
         number_of_files=-1,
         local_file_path='/temp'
     ):
+        logger.info('''
+            start process with
+            multiprocessing = %s 
+            name = %s
+            ticker = %s 
+            cik = %s 
+            save = %s 
+            save_to_db = %s 
+            number_of_files = %s 
+            local_file_path = %s
+            ''' % (multiprocessing, name, ticker, cik, save, save_to_db, number_of_files, local_file_path))
+
         if not self.connected:
             logger.error(self.status)
             quit()
@@ -101,9 +118,14 @@ class SecDigger(SecIdx, MongoHelper):
         elif name:
             query.append(
                 {'$match': {'name': {'$in': [name] if type(name) == str else name}}})
+        elif name_regex:
+            regx = []
+            for r in name_regex:
+                regx.append(re.compile(r, re.IGNORECASE))
+            query.append(
+                {'$match': {'name': {'$in': regx}}})        
 
         if number_of_files > 0:
-            print('test')
             query.append({'$limit': number_of_files})
 
         # noinspection PyTypeChecker
@@ -123,7 +145,8 @@ class SecDigger(SecIdx, MongoHelper):
             tasks.append(row)
 
         if len(tasks) == 0:
-            logger.debug('no more filings!')
+            logger.debug(query)
+            logger.warning('no more filings!')
             quit()
 
         def store_result(res):
