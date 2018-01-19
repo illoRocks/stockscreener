@@ -19,5 +19,5 @@ def ctime(t, digit=1):
     else:
         print('TypeError: variable is %s. It must be dict or list!' % type(t))
         return
-    summary += '\t' + str(type(t))
+    # summary += '\t' + str(type(t))
     print(summary)

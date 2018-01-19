@@ -32,8 +32,8 @@ class SecIdx(MongoHelper):
         self.session = {}
         logger.debug('init SecIdx')
 
-    def download_idx(self, whole=True, quarterly_files=list()):
-        """if whole then 1993 until the most recent quarter"""
+    def download_idx(self, init=False, quarterly_files=list()):
+        """if init then 1993 until the most recent quarter"""
 
         logger.debug('run download_idx')
 
@@ -43,15 +43,15 @@ class SecIdx(MongoHelper):
         current_year = datetime.date.today().year
         current_quarter = (datetime.date.today().month - 1) // 3 + 1
 
-        if whole and len(quarterly_files) == 0:
+        if init and len(quarterly_files) == 0:
             start_year = 1993
             years = list(range(start_year, current_year))
             quarters = ['QTR1', 'QTR2', 'QTR3', 'QTR4']
             history = [(y, q) for y in years for q in quarters]
             for i in range(1, current_quarter):
                 history.append((current_year, 'QTR%d' % i))
-            quarterly_files = ['https://www.sec.gov/Archives/edgar/full-index/%d/%s/xbrl.zip' % (x[0], x[1]) for x in
-                               history]
+            quarterly_files = [
+                'https://www.sec.gov/Archives/edgar/full-index/%d/%s/xbrl.zip' % (x[0], x[1]) for x in history]
             quarterly_files.sort()
             quarterly_files.append(
                 'https://www.sec.gov/Archives/edgar/full-index/xbrl.zip')
@@ -74,7 +74,8 @@ class SecIdx(MongoHelper):
                     last_year, last_quarter),
                 'https://www.sec.gov/Archives/edgar/full-index/xbrl.zip']
 
-            logging.debug('Start -> Year: %s Quarter: %s' % (last_year, last_quarter))
+            logging.debug('Start -> Year: %s Quarter: %s' %
+                          (last_year, last_quarter))
 
         for url in quarterly_files:
             logging.debug(url)
@@ -104,8 +105,8 @@ class SecIdx(MongoHelper):
     def save_idx(self):
         """save idx to mongodb"""
 
-        if self.col == 'Not connected to database!':
-            logging.debug(self.col)
+        if not self.connected:
+            logging.error(self.status)
             quit()
 
         elif len(self.idx) == 0:
@@ -115,14 +116,14 @@ class SecIdx(MongoHelper):
             idx_dict = defaultdict(dict)
             logging.debug("write data to database...")
             for cik, name, form, date, path in self.idx:
-                self.col.update({'_id': cik},
-                                {'$set': {'name': name},
-                                 '$addToSet': {'edgar_path': {
-                                     'form': form,
-                                     'date': date,
-                                     'path': path,
-                                     'log': None}}},
-                                upsert=True)
+                self.col_edgar_path.update({'_id': cik},
+                                           {'$set': {'name': name},
+                                            '$addToSet': {'edgar_path': {
+                                                'form': form,
+                                                'date': date,
+                                                'path': path,
+                                                'log': None}}},
+                                           upsert=True)
             logging.debug("saved all paths")
 
     def __str__(self):

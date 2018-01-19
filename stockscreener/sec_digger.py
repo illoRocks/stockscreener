@@ -4,15 +4,13 @@ import requests
 import zipfile
 import io
 import time
-from pprint import pprint
 from multiprocessing import Pool
 import logging
-import logging.config
 
 from .helper import ctime
 from .edgar_idx import SecIdx
 from .mongo_db import MongoHelper
-from .download_filings import DownloadFilings
+from .download_filings import XbrlCrawler
 
 
 logger = logging.getLogger(__name__)
@@ -25,7 +23,7 @@ logger = logging.getLogger(__name__)
 # def mp_ffw(save=False, verbose=False, **kwargs):
 #     """create Download-Handler"""
 #
-#     df = DownloadFilings(**kwargs)
+#     df = XbrlCrawler(**kwargs)
 #
 #     df.download(verbose=verbose)
 #     if save:
@@ -43,34 +41,46 @@ class SecDigger(SecIdx, MongoHelper):
     def __init__(self):
         super().__init__()
         self.session = {'connection': 'not connected!',
-                        'downloaded files': 0}
-
-    def loggingBasicConfig(self, **kwargs):
-      logging.basicConfig(**kwargs)
+                        'processed': 0}
 
     @staticmethod
     def calculatestar(kwargs):
         return SecDigger.mp_ffw(**kwargs)
 
     @staticmethod
-    def mp_ffw(save = False, local_file_path = 'temp', **kwargs):
+    def mp_ffw(cik, date, url, save=False, local_file_path='temp', save_to_db=True, **kwargs):
         """create Download-Handler"""
 
         t = {'start': time.time()}
-        df = DownloadFilings(**kwargs)
-        res = df.download()
+        df = XbrlCrawler(url=url, cik=cik, date=date)
+        info = df.download()
         t['download'] = time.time()
-        if type(res) == str:
-            return res
+
+        if type(info) == str:
+            return info
+
         if save:
             df.save_documents(local_file_path)
             t['save'] = time.time()
-        result = df.parse()
-        t['parse'] = time.time()
 
-        return result, t
+        if save_to_db:
+            result = df.parse()
+            t['parse'] = time.time()
+            return result, t
 
-    def get_files_from_web(self, multiprocessing=False, name=None, ticker=None, cik=None, save=False, local_file_path='/temp'):
+        return None, t
+
+    def get_files_from_web(
+        self,
+        multiprocessing=False,
+        name=None, 
+        ticker=None,
+        cik=None,
+        save=False,
+        save_to_db=True,
+        number_of_files=-1,
+        local_file_path='/temp'
+    ):
         if not self.connected:
             logger.error(self.status)
             quit()
@@ -92,6 +102,10 @@ class SecDigger(SecIdx, MongoHelper):
             query.append(
                 {'$match': {'name': {'$in': [name] if type(name) == str else name}}})
 
+        if number_of_files > 0:
+            print('test')
+            query.append({'$limit': number_of_files})
+
         # noinspection PyTypeChecker
         query.append({'$project': {'_id': 0,
                                    'cik': '$_id',
@@ -102,9 +116,10 @@ class SecDigger(SecIdx, MongoHelper):
 
         # execute download for each edgar_path
         tasks = []
-        for row in self.col.aggregate(query):
+        for row in self.col_edgar_path.aggregate(query):
             row['save'] = save
             row['local_file_path'] = local_file_path
+            row['save_to_db'] = save_to_db
             tasks.append(row)
 
         if len(tasks) == 0:
@@ -112,50 +127,51 @@ class SecDigger(SecIdx, MongoHelper):
             quit()
 
         def store_result(res):
+            ''' store files in database '''
+
             if type(data) == str:
                 if 'error' in data:
-                    self.col.update({'_id': data['cik'], 'edgar_path.path': data['edgar_path']},
-                                    {'$set': {'edgar_path.$.log': 'error'}}, False, True)
+                    self.col_edgar_path.update({'_id': data['cik'], 'edgar_path.path': data['edgar_path']},
+                                               {'$set': {'edgar_path.$.log': 'error'}}, False, True)
             else:
                 try:
-                    self.col.update_one(**data['query'])
+                    self.col_companies.update_one(**data['query'])
                 except TypeError:
-                    pprint(data['query'])
+                    logger.error(data['query'])
                     quit()
 
-                self.col.update({'_id': data['cik'], 'edgar_path.path': data['edgar_path']},
-                                {'$set': {'edgar_path.$.log': 'stored'}}, False, True)
-            
-            logger.info(" verstrichen: %s min\tVerarbeitet: %s Stücke" % (round((time.time() - start_time) / 60), i))
+                self.col_edgar_path.update({'_id': data['cik'], 'edgar_path.path': data['edgar_path']},
+                                           {'$set': {'edgar_path.$.log': 'stored'}}, False, True)
 
-        i = 1
+
+            self.session['processed'] += 1
+            logger.info(" verstrichen: %s min\tVerarbeitet: %s Stücke" %
+                        (round((time.time() - start_time) / 60), self.session['processed']))
+
         if not multiprocessing:
             logger.debug('use synchronious mode')
             for row in tasks:
-                logger.debug("task - name: %s url: %s" % (row['name'], row['url']))
+                logger.debug("task - name: %s url: %s" %
+                             (row['name'], row['url']))
                 data, t = self.mp_ffw(**row)
-                # logger.debug("data: %s" % data)
-                store_result(data)
-                i += 1
-                self.session['downloaded files'] += 1
-                ctime(t)
+                if data is not None:
+                    store_result(data)
+                # ctime(t)
 
         else:
 
-            worker = 10 if multiprocessing is bool else multiprocessing
+            worker = 4 if multiprocessing is bool else multiprocessing
             with Pool(worker) as pool:
 
                 imap_unordered_it = pool.imap_unordered(
                     SecDigger.calculatestar, tasks)
 
-                i = 0
-                print('Unordered results using pool.imap_unordered():')
+                logger.info('Unordered results using pool.imap_unordered():')
                 for data, t in imap_unordered_it:
-                    print(data['edgar_path'])
+                    logger.info(data['edgar_path'])
                     store_result(data)
-                    i += 1
-                    self.session['downloaded files'] += 1
-                    ctime(t)
+                    self.session['processed'] += 1
+                    # ctime(t)
 
     def __str__(self):
         """print all abaut this session"""

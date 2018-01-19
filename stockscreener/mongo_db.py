@@ -1,25 +1,31 @@
 import pymongo
+import logging
+from enum import Enum
 
+logger = logging.getLogger(__name__)
 
 class MongoHelper:
     """manage mongoDB for SecDigger"""
 
     def __init__(self):
-        self.session = {}
-        self.col = {}
+        self.col_edgar_path = {}
+        self.col_companies = {}
         self.connected = False
         self.status = 'Not connected to database!'
 
-    def connect(self, database, collection, host='localhost', port=27017):
+    def connect(self, host='localhost', port=27017):
+        ''' TODO: mongodb-connection-string and password username '''
+
         try:
             conn = pymongo.MongoClient(host, port)
-            conn.server_info()
-            self.col = conn[database][collection]
-            self.session['connection'] = str(self.col)
+            self.col_edgar_path = conn['sec_digger']['edgarPath']
+            self.col_companies = conn['sec_digger']['companies']
             self.connected = True
         except pymongo.errors.ServerSelectionTimeoutError as err:
-            print("Could not connect to MongoDB: %s" % err)
+            logging.error("Could not connect to MongoDB: %s" % err)
             quit()
+        
+        logger.info('database connection successful')
 
     def __str__(self):
         if not self.connected:

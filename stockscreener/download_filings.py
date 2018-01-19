@@ -13,14 +13,16 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-
+''' TODO: rename '''
 pattern = compile("^(-[0-9]+)|([0-9]+)$")
 
-class DownloadFilings:
+
+class XbrlCrawler:
     """load filings from SEC and save them to objects"""
 
-    def __init__(self, url, name=None, cik=None, form=None, date=None):
-        self.url = 'https://www.sec.gov/Archives/%s' % url.replace('https://www.sec.gov/Archives/', '')
+    def __init__(self, url, cik=None, date=None):
+        self.url = 'https://www.sec.gov/Archives/%s' % url.replace(
+            'https://www.sec.gov/Archives/', '')
         self.cik = cik
         self.date = date
         self.accession = url.split('/')[-1][:-4]
@@ -30,7 +32,7 @@ class DownloadFilings:
         """download and save sec files"""
 
         logger.debug(self.url)
-        
+
         try:
             resp = requests.get(self.url, stream=True)
 
@@ -55,35 +57,47 @@ class DownloadFilings:
                     start_xml = True
 
                 if commit and (start_xml or header):
-                    self.files[filename] += '%s\n' % sub('\n', '', line.decode("utf-8"))
+                    self.files[filename] += '%s\n' % sub(
+                        '\n', '', line.decode("utf-8"))
 
                 if commit and search(b'(</sec-header>|</xbrl>|</xbrli:xbrl>)', line, flags=IGNORECASE):
-                    self.files[filename] = sub('<xbrl>\n', '', self.files[filename], flags=IGNORECASE)#</xbrl>|
+                    self.files[filename] = sub(
+                        '<xbrl>\n', '', self.files[filename], flags=IGNORECASE)  # </xbrl>|
                     commit = False
                     filename = None
                     start_xml = False
                     header = True
-
+            
             resp.close()
 
         except Exception as inst:
             logging.error('error in requests\n\t%s' % inst.args)
+            quit()
 
     def clean_file(self, filename):
+        ''' clean file from not necessary content '''
 
-        self.files[filename] = sub('(<link:footnoteLink((.|\n)*?)footnoteLink>)', '', self.files[filename])
+        self.files[filename] = sub(
+            '(<link:footnoteLink((.|\n)*?)footnoteLink>)', '', self.files[filename])
         linebreak = findall('</((.|\n)*?)>', self.files[filename])
         for b in linebreak:
             cleaned = sub('\n', '', b[0])
             self.files[filename] = sub(b[0], cleaned, self.files[filename])
         self.files[filename] = sub('&', '', self.files[filename])
-        self.files[filename] = sub('(us.{1,4}gaap:)', 'us-gaap:', self.files[filename])
+        self.files[filename] = sub(
+            '(us.{1,4}gaap:)', 'us-gaap:', self.files[filename])
 
     def save_documents(self, path):
         """save whole documents in path"""
 
         file_path = path + '/' + self.cik + '/' + self.accession
-        logger.debug('path: %s' % file_path)
+
+        if len(self.files) > 0:
+            logger.debug('write to: %s' % file_path)
+        else:
+            logger.error('no files downloaded!!!')
+            quit()
+
         makedirs(file_path, exist_ok=True)
         for filename, txt in self.files.items():
             with open(file_path + '/' + filename, 'w') as file:
@@ -101,9 +115,11 @@ class DownloadFilings:
                 filename = f
                 self.clean_file(filename=filename)
                 break
+
         if not xbrl:
             f = ''.join('\t' + f + '\n' for f in self.files)
-            logger.warning('no xbrl found. please change criterion: \n%s\t%s' % (f, self.url))
+            logger.warning(
+                'no xbrl found. please change criterion: \n%s\t%s' % (f, self.url))
             return 'no xbrl found!'
 
         it = ET.iterparse(StringIO(self.files[filename]))
@@ -132,7 +148,6 @@ class DownloadFilings:
             elif pattern.match(str(child.text)):
                 data[child.attrib['contextRef']][child.tag] = num(child.text)
 
-
         content = defaultdict(dict)
         for ref, values in data.items():
             for item in values:
@@ -145,11 +160,11 @@ class DownloadFilings:
             return "error no items in %s" % self.url
 
         query = {'filter': {'_id': self.cik},
-                'update': {"$set": {'lastDocument': self.date,
-                                    'lastUpdate': datetime.today()},
-                           '$addToSet': {**content},
-                           '$inc': {'NumberOfDocuments': 1}},
-                'upsert': True}
+                 'update': {"$set": {'lastDocument': self.date,
+                                     'lastUpdate': datetime.today()},
+                            '$addToSet': {**content},
+                            '$inc': {'NumberOfDocuments': 1}},
+                 'upsert': True}
 
         for k, v in misc.items():
             query['update']['$set'][k] = v
@@ -161,5 +176,3 @@ class DownloadFilings:
     # crawler.get_param()
     # crawler.download(verbose=True)
     # crawler.save_documents(join(dirname(abspath(__file__)), 'temp'))
-
-
