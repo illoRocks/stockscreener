@@ -72,6 +72,13 @@ parser.add_argument('-multi',
                     help='Option for multiprocessing. default = False. if True then 4 worker will be used or use your prefered number of worker.'
 )
 
+
+parser.add_argument('-limit',
+                    type=int,
+                    default=-1,
+                    help='limit the number of downloads'
+)
+
 args = parser.parse_args()
 
 # for arg in vars(args):
@@ -114,7 +121,8 @@ sd.get_files_from_web(
     save = args.saveLocal,
     local_file_path = args.path,
     save_to_db = args.saveDb,
-    multiprocessing = args.multi
+    multiprocessing = args.multi,
+    number_of_files = args.limit
 )
 
 # python3 run.py --init --debug
