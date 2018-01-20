@@ -156,22 +156,24 @@ class SecDigger(SecIdx, MongoHelper):
         def store_result(res):
             ''' store files in database '''
 
-            if type(data) == str:
-                if 'error' in data:
-                    self.col_edgar_path.update({'_id': data['cik'], 'edgar_path.path': data['edgar_path']},
+            if type(res) == str:
+                if 'error' in res:
+                    self.col_edgar_path.update({'_id': res['cik'], 'edgar_path.path': res['edgar_path']},
                                                {'$set': {'edgar_path.$.log': 'error'}}, False, True)
             else:
                 try:
-                    self.col_companies.update_one(**data['query'])
+                    self.col_companies.update_one(**res['query_company'])
+                    self.col_financial_positions.update_one(**res['query_financial_positions'])
                 except TypeError:
-                    logger.error(data['query'])
+                    logger.error(res['query_company'])
                     quit()
                 except pymongo.errors.WriteError as err:
-                    logger.error(data['query'])
+                    logger.error(res['query_company'])
+                    logger.error(res['query_financial_positions'])
                     logger.error('Please check the query: WriteError %s' % err)
                     quit()
 
-                self.col_edgar_path.update({'_id': data['cik'], 'edgar_path.path': data['edgar_path']},
+                self.col_edgar_path.update({'_id': res['cik'], 'edgar_path.path': res['edgar_path']},
                                            {'$set': {'edgar_path.$.log': 'stored'}}, False, True)
 
             self.session['processed'] += 1

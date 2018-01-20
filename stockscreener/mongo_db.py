@@ -1,6 +1,5 @@
 import pymongo
 import logging
-from enum import Enum
 
 logger = logging.getLogger(__name__)
 
@@ -10,6 +9,7 @@ class MongoHelper:
     def __init__(self):
         self.col_edgar_path = {}
         self.col_companies = {}
+        self.col_financial_positions = {}
         self.connected = False
         self.status = 'Not connected to database!'
 
@@ -20,6 +20,7 @@ class MongoHelper:
             conn = pymongo.MongoClient(host, port)
             self.col_edgar_path = conn['sec_digger']['edgarPath']
             self.col_companies = conn['sec_digger']['companies']
+            self.col_financial_positions = conn['sec_digger']['financialPositions']
             self.connected = True
         except pymongo.errors.ServerSelectionTimeoutError as err:
             logging.error("Could not connect to MongoDB: %s" % err)
@@ -31,7 +32,7 @@ class MongoHelper:
         if not self.connected:
             return self.status
         else:
-            return "Connected successfully!!! %s" % str(self.col)
+            return "Connected successfully!"
 
 
 if __name__ == '__main__':

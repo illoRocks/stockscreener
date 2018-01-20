@@ -162,7 +162,7 @@ class XbrlCrawler:
         content = defaultdict(dict)
         for ref, values in data.items():
             for item in values:
-                content['fillings.' + item].setdefault('$each', []).append(
+                content[item].setdefault('$each', []).append(
                     {**context[ref],  # startDate and endDate
                      'updated': self.date,
                      'value': data[ref][item]})
@@ -170,17 +170,25 @@ class XbrlCrawler:
         if content is None or len(content) == 0:
             return "error no items in %s" % self.url
 
-        query = {'filter': {'_id': self.cik},
-                 'update': {"$set": {'lastDocument': self.date,
-                                     'lastUpdate': datetime.today()},
-                            '$addToSet': {**content},
-                            '$inc': {'NumberOfDocuments': 1}},
+        query_company = {'filter': {'_id': self.cik},
+                        'update': {"$set": {'lastDocument': self.date,
+                                            'lastUpdate': datetime.today()},
+                                    '$inc': {'NumberOfDocuments': 1} },
+                        'upsert': True}
+
+        query_financial_positions = {'filter': {'_id': self.cik},
+                 'update': {'$addToSet': {**content} },
                  'upsert': True}
 
         for k, v in misc.items():
-            query['update']['$set'][k] = v
+            query_company['update']['$set'][k] = v
 
-        return {'query': query, 'cik': self.cik, 'edgar_path': self.url.replace('https://www.sec.gov/Archives/', '')}
+        return { 
+            'query_company': query_company, 
+            'query_financial_positions': query_financial_positions,
+            'cik': self.cik, 
+            'edgar_path': self.url.replace('https://www.sec.gov/Archives/', '')
+        }
 
     def __str__(self):
         return '''
