@@ -15,7 +15,7 @@ try:
     from .helper import ctime
     from .edgar_idx import SecIdx
     from .mongo_db import MongoHelper
-    from .download_filings import XbrlCrawlers
+    from .download_filings import XbrlCrawler
 except (ImportError, SystemError):
     from helper import ctime
     from edgar_idx import SecIdx
