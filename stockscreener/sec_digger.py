@@ -29,25 +29,6 @@ logger = logging.getLogger(__name__)
 logging.getLogger("requests").setLevel(logging.WARNING)
 
 
-# def calculatestar(kwargs):
-#     return mp_ffw(**kwargs)
-#
-#
-# def mp_ffw(save=False, verbose=False, **kwargs):
-#     """create Download-Handler"""
-#
-#     df = XbrlCrawler(**kwargs)
-#
-#     df.download(verbose=verbose)
-#     if save:
-#         p = '/temp' if 'local_file_path' not in kwargs else '/' + kwargs['local_file_path']
-#         p += '' if 'cik' not in kwargs else '/' + kwargs['cik']
-#         df.save_documents(p)
-#     result = df.parse(verbose=verbose)
-#
-#     return result
-
-
 class SecDigger(SecIdx, MongoHelper):
     """Handler for SEC-filings"""
 
