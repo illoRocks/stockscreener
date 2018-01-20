@@ -97,7 +97,7 @@ p.add_argument('-limit',
                help='limit the number of downloads'
                )
 
-p.add_argument('--skipId',
+p.add_argument('--skipIndexdex',
                action="store_true",
                default=False,
                help='skip the index updater'
@@ -123,7 +123,7 @@ sd.connect(
 )
 
 # fill database with paths
-if not args.skipId:
+if not args.skipIndexdex:
     sd.download_idx(init=args.init)
     sd.save_idx()
 
@@ -153,4 +153,4 @@ sd.get_files_from_web(
 # python3 run.py --init --debug
 # python3 run.py -port 27017 -host localhost -multi 9 --debug -cik 796343
 # python3 run.py -port 27017 -host localhost -multi 9 --debug -nameRegex "coca cola" -limit 5
-# python3 run.py -cikPath dowjones.txt --skipID
+# python3 run.py -cikPath dowjones.txt --skipIndex
