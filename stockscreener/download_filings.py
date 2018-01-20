@@ -110,7 +110,7 @@ class XbrlCrawler:
         for f in self.files:
             if not search('(header.txt|FilingSummary|\.xsd|defnref|(pre|lab|def|cal|ref|R[0-9]{1,3})\.xml)', f):
                 xbrl = True
-                logger.info('parse: %s in %s' % (f, self.url))
+                logger.debug('parse: %s in %s' % (f, self.url))
                 filename = f
                 self.clean_file(filename=filename)
                 break

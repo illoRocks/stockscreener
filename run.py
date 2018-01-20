@@ -21,7 +21,7 @@ p = argparse.ArgumentParser(description='Download filings from EDGAR.')
 
 p.add_argument('--debug',
                action="store_true",
-               default=LOGGING.getboolean('debug', False),
+               default=LOGGING.getboolean('Logging', False),
                help='output debug informations'
                )
 

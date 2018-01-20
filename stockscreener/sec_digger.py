@@ -120,7 +120,7 @@ class SecDigger(SecIdx, MongoHelper):
             ciks = []
             with open(cik_path, 'r') as file:
                 for item in file:
-                    ciks.append(item.replace("\n",""))
+                    ciks.append(item.replace("\n", ""))
             query.append(
                 {'$match': {'_id': {'$in': ciks}}})
         else:
@@ -183,7 +183,7 @@ class SecDigger(SecIdx, MongoHelper):
                 if data is not None:
                     store_result(data)
                     logger.info("verstrichen: %s min\tVerarbeitet: %s Stücke | latest: %s" %
-                                (round((time.time() - start_time) / 60), self.session['processed']), row['url'])
+                                (round((time.time() - start_time) / 60), self.session['processed'], data['edgar_path']))
 
         else:
 
@@ -195,10 +195,9 @@ class SecDigger(SecIdx, MongoHelper):
 
                 logger.info('Unordered results using pool.imap_unordered():')
                 for data, t in imap_unordered_it:
-                    print(data)
-                    # store_result(data)
-                    # logger.info("verstrichen: %s min\tVerarbeitet: %s Stücke | latest: %s" %
-                                # (round((time.time() - start_time) / 60), self.session['processed']), row['url'])
+                    store_result(data)
+                    logger.info("verstrichen: %s min\tVerarbeitet: %s Stücke | latest: %s" %
+                    (round((time.time() - start_time) / 60), self.session['processed'], data['edgar_path']))
 
     def __str__(self):
         """print all abaut this session"""
