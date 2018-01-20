@@ -86,7 +86,7 @@ class SecDigger(SecIdx, MongoHelper):
         save=False,
         save_to_db=True,
         number_of_files=-1,
-        local_file_path='/temp'
+        local_file_path='temp'
     ):
         logger.info('''
             start process with
@@ -186,13 +186,13 @@ class SecDigger(SecIdx, MongoHelper):
                                            {'$set': {'edgar_path.$.log': 'stored'}}, False, True)
 
             self.session['processed'] += 1
-            logger.info(" verstrichen: %s min\tVerarbeitet: %s Stücke" %
+            logger.info("verstrichen: %s min\tVerarbeitet: %s Stücke" %
                         (round((time.time() - start_time) / 60), self.session['processed']))
 
         if not multiprocessing:
             logger.debug('use synchronious mode')
             for row in tasks:
-                logger.debug("task - name: %s url: %s" %
+                logger.debug("new task - name: %s url: %s" %
                              (row['name'], row['url']))
                 data, t = self.mp_ffw(**row)
                 if data is not None:

@@ -23,7 +23,7 @@ class XbrlCrawler:
     def __init__(self, url, cik=None, date=None):
         self.url = 'https://www.sec.gov/Archives/%s' % url.replace(
             'https://www.sec.gov/Archives/', '')
-        self.cik = cik
+        self.cik = cik if cik is not None else url.split('/')[-2]
         self.date = date
         self.accession = url.split('/')[-1][:-4]
         self.files = {}
@@ -64,7 +64,7 @@ class XbrlCrawler:
                     filename = None
                     start_xml = False
                     header = True
-            
+
             resp.close()
 
         except Exception as inst:
@@ -80,14 +80,16 @@ class XbrlCrawler:
         for b in linebreak:
             cleaned = sub('\n', '', b[0])
             self.files[filename] = sub(b[0], cleaned, self.files[filename])
+
         self.files[filename] = sub('&', '', self.files[filename])
+        self.files[filename] = sub('<\n', '<', self.files[filename])
         self.files[filename] = sub(
             '(us.{1,4}gaap:)', 'us-gaap:', self.files[filename])
 
-    def save_documents(self, path):
+    def save_documents(self, target_path):
         """save whole documents in path"""
 
-        file_path = path + '/' + self.cik + '/' + self.accession
+        file_path = path.join(target_path, self.cik, self.accession)
 
         if len(self.files) > 0:
             logger.debug('write to: %s' % file_path)
@@ -108,7 +110,7 @@ class XbrlCrawler:
         for f in self.files:
             if not search('(header.txt|FilingSummary|\.xsd|defnref|(pre|lab|def|cal|ref|R[0-9]{1,3})\.xml)', f):
                 xbrl = True
-                logger.info('%s: %s' % (f, self.url))
+                logger.info('parse: %s in %s' % (f, self.url))
                 filename = f
                 self.clean_file(filename=filename)
                 break
@@ -121,10 +123,20 @@ class XbrlCrawler:
 
         it = ET.iterparse(StringIO(self.files[filename]))
         # strip all namespaces
-        for _, el in it:
-            if '}' in el.tag:
-                el.tag = el.tag.split('}', 1)[1]
-        root = it.root
+        try:
+            for _, el in it:
+                if '}' in el.tag:
+                    el.tag = el.tag.split('}', 1)[1]
+
+        except ET.ParseError as err:
+            logger.error('''
+                Something went wrong
+                file is stored under: %s
+                please check the failure in the xml and fix this bug
+                error: %s
+                ''' % ('errors/' + self.cik + '/' + self.accession + '/' + filename, err))
+            self.save_documents("logs/errors")
+            quit()
 
         def num(s):
             try:
@@ -132,11 +144,12 @@ class XbrlCrawler:
             except ValueError:
                 return float(s)
 
+        root = it.root
         context = defaultdict(dict)
         data = defaultdict(dict)
         misc = {}
         for child in root:
-            child.tag = child.tag.replace(".","")
+            child.tag = child.tag.replace(".", "")
             if child.tag == 'context':
                 for period in child.findall('period'):
                     for date in period:
@@ -169,8 +182,28 @@ class XbrlCrawler:
 
         return {'query': query, 'cik': self.cik, 'edgar_path': self.url.replace('https://www.sec.gov/Archives/', '')}
 
-# if __name__ == '__main__':
-    # crawler = DownloadFilings()
-    # crawler.get_param()
-    # crawler.download(verbose=True)
+    def __str__(self):
+        return '''
+            Classname: %s
+            Parameters: url = %s
+                        cik = %s
+                        date = %s
+                        accession = %s
+                        files = %s
+            ''' % (__class__.__name__, self.url, self.cik, self.date, self.accession, self.files)
+
+
+if __name__ == '__main__':
+
+    logging.basicConfig(
+        level=logging.DEBUG,
+        format='%(levelname)s/%(module)s/%(funcName)s %(message)s'
+    )
+
+    crawler = XbrlCrawler(
+        'https://www.sec.gov/Archives/edgar/data/104169/0001193125-10-202779.txt')
+    print(crawler)
+    crawler.download()
+    crawler.parse()
+
     # crawler.save_documents(join(dirname(abspath(__file__)), 'temp'))
