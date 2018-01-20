@@ -18,7 +18,11 @@ from urllib.request import urlopen, build_opener
 from zipfile import ZipFile
 import logging
 
-from stockscreener.mongo_db import MongoHelper
+try:
+    from .mongo_db import MongoHelper
+except (ImportError, SystemError):
+    from mongo_db import MongoHelper
+
 
 
 import logging

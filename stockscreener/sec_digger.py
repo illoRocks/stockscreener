@@ -8,11 +8,19 @@ from multiprocessing import Pool
 import logging
 import re
 import pymongo
+import sys
+import os.path
 
-from .helper import ctime
-from .edgar_idx import SecIdx
-from .mongo_db import MongoHelper
-from .download_filings import XbrlCrawler
+try:
+    from .helper import ctime
+    from .edgar_idx import SecIdx
+    from .mongo_db import MongoHelper
+    from .download_filings import XbrlCrawlers
+except (ImportError, SystemError):
+    from helper import ctime
+    from edgar_idx import SecIdx
+    from mongo_db import MongoHelper
+    from download_filings import XbrlCrawler
 
 
 logger = logging.getLogger(__name__)
@@ -186,18 +194,15 @@ class SecDigger(SecIdx, MongoHelper):
                                            {'$set': {'edgar_path.$.log': 'stored'}}, False, True)
 
             self.session['processed'] += 1
-            logger.info("verstrichen: %s min\tVerarbeitet: %s Stücke" %
-                        (round((time.time() - start_time) / 60), self.session['processed']))
 
         if not multiprocessing:
             logger.debug('use synchronious mode')
             for row in tasks:
-                logger.debug("new task - name: %s url: %s" %
-                             (row['name'], row['url']))
                 data, t = self.mp_ffw(**row)
                 if data is not None:
                     store_result(data)
-                # ctime(t)
+                    logger.info("verstrichen: %s min\tVerarbeitet: %s Stücke | latest: %s" %
+                                (round((time.time() - start_time) / 60), self.session['processed']), row['url'])
 
         else:
 
@@ -209,9 +214,10 @@ class SecDigger(SecIdx, MongoHelper):
 
                 logger.info('Unordered results using pool.imap_unordered():')
                 for data, t in imap_unordered_it:
-                    store_result(data)
-                    self.session['processed'] += 1
-                    # ctime(t)
+                    print(data)
+                    # store_result(data)
+                    # logger.info("verstrichen: %s min\tVerarbeitet: %s Stücke | latest: %s" %
+                                # (round((time.time() - start_time) / 60), self.session['processed']), row['url'])
 
     def __str__(self):
         """print all abaut this session"""
@@ -223,14 +229,15 @@ class SecDigger(SecIdx, MongoHelper):
 
 if __name__ == '__main__':
     """lade IDX herunter und seicher diese in DB"""
+
+    import logging
+    logging.basicConfig(level=logging.DEBUG)
+
     # use SecDigger
     sd = SecDigger()
 
-    # set debug level
-    sd.loggingBasicConfig(level=logging.DEBUG)
-
     # connect to Database
-    sd.connect(database='sec_digger', collection='stocks')
+    sd.connect()
 
 
 # edgar/data/1000045/0001193125-11-216128.txt'
