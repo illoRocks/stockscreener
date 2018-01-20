@@ -182,7 +182,7 @@ class SecDigger(SecIdx, MongoHelper):
                 data, t = self.mp_ffw(**row)
                 if data is not None:
                     store_result(data)
-                    logger.info("verstrichen: %s min\tVerarbeitet: %s Stücke | latest: %s" %
+                    logger.info("elapsed: %s min\tprocessed: %s Stücke | latest: %s" %
                                 (round((time.time() - start_time) / 60), self.session['processed'], data['edgar_path']))
 
         else:
@@ -196,7 +196,7 @@ class SecDigger(SecIdx, MongoHelper):
                 logger.info('Unordered results using pool.imap_unordered():')
                 for data, t in imap_unordered_it:
                     store_result(data)
-                    logger.info("verstrichen: %s min\tVerarbeitet: %s Stücke | latest: %s" %
+                    logger.info("elapsed: %s min\tprocessed: %s pieces\tlatest: %s" %
                     (round((time.time() - start_time) / 60), self.session['processed'], data['edgar_path']))
 
     def __str__(self):
