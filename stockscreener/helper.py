@@ -1,3 +1,7 @@
+from datetime import datetime
+import re
+
+
 def ctime(t, digit=1):
     ''' berechnet verbrauchte Zeit '''
 
@@ -34,3 +38,12 @@ def bool_or_int(v):
             return int(v)
         except ValueError:
             raise argparse.ArgumentTypeError('Boolean value expected.')
+
+
+def parse_date(str):
+
+    # pattern = re.compile("[0-9]{4}-[0-9]{2}-[0-9]{2}")
+    # pattern.match(str)
+
+    format = '%Y-%m-%d'
+    return datetime.strptime(str, format)

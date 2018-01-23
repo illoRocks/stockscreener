@@ -10,6 +10,7 @@ class MongoHelper:
         self.col_edgar_path = {}
         self.col_companies = {}
         self.col_financial_positions = {}
+        self.col_clean_financial_positions = {}
         self.connected = False
         self.status = 'Not connected to database!'
 
@@ -21,6 +22,7 @@ class MongoHelper:
             self.col_edgar_path = conn['sec_digger']['edgarPath']
             self.col_companies = conn['sec_digger']['companies']
             self.col_financial_positions = conn['sec_digger']['financialPositions']
+            self.col_clean_financial_positions = conn['sec_digger']['cleanFinancialPositions']
             self.connected = True
         except pymongo.errors.ServerSelectionTimeoutError as err:
             logging.error("Could not connect to MongoDB: %s" % err)

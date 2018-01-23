@@ -12,6 +12,11 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+try:
+    from .helper import parse_date
+except (ImportError, SystemError):
+    from helper import parse_date
+
 
 ''' TODO: rename '''
 pattern = compile("^(-[0-9]+)|([0-9]+)$")
@@ -102,26 +107,35 @@ class XbrlCrawler:
             with open(file_path + '/' + filename, 'w') as file:
                 file.write('%s\n' % txt)
 
-    def parse(self):
+    def parse(self, local_path = None):
         """create SAX-Parser and parse the xbrl"""
 
-        t = time.time()
-        xbrl = False
-        for f in self.files:
-            if not search('(header.txt|FilingSummary|\.xsd|defnref|(pre|lab|def|cal|ref|R[0-9]{1,3})\.xml)', f):
-                xbrl = True
-                logger.debug('parse: %s in %s' % (f, self.url))
-                filename = f
-                self.clean_file(filename=filename)
-                break
+        if local_path == None:
+            t = time.time()
+            xbrl = False
+            for f in self.files:
+                if not search('(header.txt|FilingSummary|\.xsd|defnref|(pre|lab|def|cal|ref|R[0-9]{1,3})\.xml)', f):
+                    xbrl = True
+                    logger.debug('parse: %s in %s' % (f, self.url))
+                    filename = f
+                    self.clean_file(filename=filename)
+                    break
 
-        if not xbrl:
-            f = ''.join('\t' + f + '\n' for f in self.files)
-            logger.warning(
-                'no xbrl found. please change criterion: \n%s\t%s' % (f, self.url))
-            return 'no xbrl found!'
+            if not xbrl:
+                f = ''.join('\t' + f + '\n' for f in self.files)
+                logger.warning(
+                    'no xbrl found. please change criterion: \n%s\t%s' % (f, self.url))
+                return 'no xbrl found!'
 
-        it = ET.iterparse(StringIO(self.files[filename]))
+            it = ET.iterparse(StringIO(self.files[filename]))
+        
+        else:
+            with open(local_path, 'r') as f:
+                xbrl = f.read()
+            it = ET.iterparse(StringIO(xbrl))
+            # print('local_path noch nicht implementiert!!')
+            # quit()
+
         # strip all namespaces
         try:
             for _, el in it:
@@ -153,7 +167,17 @@ class XbrlCrawler:
             if child.tag == 'context':
                 for period in child.findall('period'):
                     for date in period:
+                        date.text =parse_date(date.text)
                         context[child.attrib['id']][date.tag] = date.text
+                for entity in child.findall('entity'):
+                    for segment in entity.findall('segment'):
+                        for member in segment.findall('explicitMember'):
+                            if ':' in member.text:
+                                member.text = member.text.split(':', 1)[1]
+                            if 'segment' in context[child.attrib['id']]:
+                                context[child.attrib['id']]['segment'].append(member.text)
+                            else:
+                                context[child.attrib['id']]['segment'] = [member.text,]
             elif search('EntityRegistrantName|TradingSymbol|CurrentFiscalYearEndDate|CommonStockDescription', child.tag, flags=IGNORECASE):
                 misc[child.tag] = child.text
             elif pattern.match(str(child.text)):
@@ -165,7 +189,9 @@ class XbrlCrawler:
                 content[item].setdefault('$each', []).append(
                     {**context[ref],  # startDate and endDate
                      'updated': self.date,
-                     'value': data[ref][item]})
+                     'value': data[ref][item],
+                     'url': self.url})
+
 
         if content is None or len(content) == 0:
             return "error no items in %s" % self.url
@@ -209,9 +235,12 @@ if __name__ == '__main__':
     )
 
     crawler = XbrlCrawler(
-        'https://www.sec.gov/Archives/edgar/data/104169/0001193125-10-202779.txt')
+        'https://www.sec.gov/Archives/edgar/data/1001039/0001001039-13-000164.txt')
     print(crawler)
-    crawler.download()
-    crawler.parse()
+    # crawler.download()
+    
+    crawler.parse('/home/olli/Repositories-Next/Bots/stockscreener/test/1001039/0001001039-13-000164/dis-20130928.xml')
 
-    # crawler.save_documents(join(dirname(abspath(__file__)), 'temp'))
+    # print(target)
+    target = path.join(path.dirname(path.abspath(__file__)), '..', 'test')
+    # crawler.save_documents(target)

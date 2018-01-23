@@ -1,3 +1,6 @@
 {
-  "Revenues": [ "Revenues" ]
+  "financial_positions": {
+    "Revenues": [ "Revenues", "SalesRevenueNet" ]
+  },
+  "segments": []
 }

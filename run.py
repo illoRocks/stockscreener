@@ -97,7 +97,7 @@ p.add_argument('-limit',
                help='limit the number of downloads'
                )
 
-p.add_argument('--skipIndexdex',
+p.add_argument('--skipIndex',
                action="store_true",
                default=False,
                help='skip the index updater'
@@ -123,7 +123,7 @@ sd.connect(
 )
 
 # fill database with paths
-if not args.skipIndexdex:
+if not args.skipIndex:
     sd.download_idx(init=args.init)
     sd.save_idx()
 
