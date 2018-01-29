@@ -122,6 +122,7 @@ class SecIdx(MongoHelper):
 
             logger.info("write to database...")
             self.col_edgar_path.bulk_write(updates, ordered=False)
+            
             logging.debug("saved all paths")
 
             quit()
