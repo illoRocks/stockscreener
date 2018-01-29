@@ -2,7 +2,7 @@ from datetime import datetime
 import logging
 import re
 
-logger = logging.getLogger(__main__)
+logger = logging.getLogger(__name__)
 
 def num(s):
     try:

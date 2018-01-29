@@ -168,7 +168,8 @@ class XbrlCrawler:
                     for segment in entity.findall('segment'):
 
                         if len(segment.findall('explicitMember')) != 0:
-                            segment_arr = [m.text for m in segment.findall('explicitMember')]
+                            segment_arr = [
+                                m.text for m in segment.findall('explicitMember')]
                         else:
                             # TODO: is this a general rule??
                             segment_arr = [segment[0].tag, ]
@@ -191,13 +192,17 @@ class XbrlCrawler:
         content = []
         for ref, values in data.items():
             for item in values:
-                content.append({
+                c = {
                     'cik': self.cik,
-                    **context[ref], # startDate & endDate || instant || segment
+                    # startDate & endDate || instant || segment
+                    **context[ref],
                     'updated': parse_date(self.date),
                     'value': data[ref][item],
                     'label': item
-                })
+                }
+                if 'startDate' in c:
+                    c['duration'] = (c['endDate'] - c['startDate']).days
+                content.append(c)
 
         if content is None or len(content) == 0:
             return "error no items in %s" % self.url

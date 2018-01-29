@@ -30,41 +30,41 @@
 #   ])
 
 # clean position
-# var cik = "1001039"
+# ciks = ["796343"]
+# labels = ["Revenues"]
 # db.financialPositions.aggregate([
-#     {$match: {_id: cik}},
-#     {$project: {
-#         "revenues": "$SalesRevenueNet"
-#     }},
-#     {$unwind: "$revenues"},
-#     {$group: {
+#     // {"$match": {"cik": {"$in": ciks }}},
+#     // {"$match": {"label": {"$in": labels }}},
+#     {"$group": {
 #         "_id": {
-#             "duration": {$divide: [{$subtract: ["$revenues.endDate", "$revenues.startDate"]}, 86400000]},
-#             "startDate": "$revenues.startDate",
-#             "endDate": "$revenues.endDate",
-#             "segment": "$revenues.segment"
+#             "startDate": "$startDate",
+#             "endDate": "$endDate",
+#             "instant": "$instant",
+#             "duration": "$duration",
+#             "segment": "$segment",
+#             "label": "$label",
+#             "cik": "$cik"
 #         },
-#         "latest": {"$max": "$revenues.updated"},
-#         "revenues": {"$push": "$revenues"}
+#         "latest": {"$max": "$updated"},
+#         "doc": {"$push": "$$ROOT"}
 #     }},
-#     {$unwind: "$revenues"},
-#     {$redact: {$cond: [
-#             {"$eq": ["$revenues.updated", "$latest"]},
+#     {"$unwind": "$doc"},
+#     {"$redact": {"$cond": [
+#             {"$eq": ["$doc.updated", "$latest"]},
 #             "$$KEEP",
 #             "$$PRUNE"
 #         ]
 #     }},
-#     {$group: {
-#         "_id": cik,
-#         "revenues": {$push: {
-#             "duration": "$_id.duration",
-#             "startDate": "$_id.startDate",
-#             "endDate": "$_id.endDate",
-#             "segment": "$_id.segment",
-#             "value": "$revenues.value",
-#             "updated":  "$revenues.updated",
-#         }}
-#         // ]
+#     {"$project": {
+#         "_id": "$doc._id",
+#         "startDate" : "$_id.startDate",
+# 		"endDate" : "$_id.endDate",
+# 		"instant" : "$_id.instant",
+# 		"duration" : "$_id.duration",
+# 		"label" : "$_id.label",
+#         "cik": "$_id.cik",
+#         "segment": "$_id.segment",
+#         "value": "$doc.value"
 #     }},
 # ])
 
