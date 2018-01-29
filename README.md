@@ -72,7 +72,13 @@ IGNORECASE is used.
 
 ```python
 sd.get_files_from_web(
-  name_regex = "coca.*cola" # ["CoCa CoLa", "^ibm"]
+  name_regex = "coca.*cola"
+)
+
+# OR
+
+sd.get_files_from_web(
+  name_regex = ["CoCa CoLa", "^ibm"]
 )
 ```
 
@@ -160,42 +166,51 @@ Logging system is not well implemented for multiprocessing!
 * improve logging system
 * parse local xbrl
 * database to CSV
+* use sql database
 * pip
 
 ## Example Schema
 
 ```json
+// company collection
 {
-"_id" : "796343",
+  "_id" : "796343",
+  "lastUpdate" : ISODate("2018-01-29T16:25:44.560+07:00"),
+  "lastDocument" : "2008-04-04",
+  "NumberOfDocuments" : NumberInt("33")
+}
+
+// financial position collection
+
+{
+  "_id" : ObjectId("5a6e8628061b291969cae892"),
+  "endDate" : ISODate("2008-02-29T07:00:00.000+07:00"),
+  "segment" : [
+    "MobileDeviceSolutions"
+  ],
+  "updated" : ISODate("2008-04-04T07:00:00.000+07:00"),
+  "cik" : "796343",
+  "startDate" : ISODate("2007-12-01T07:00:00.000+07:00"),
+  "value" : 15200000,
+  "label" : "MobileDeviceSolutionsRevenue"
+}
+
+// EDGAR Path collection
+
+{
+  "_id" : "1107194",
   "edgar_path" : [
     {
       "log" : null,
-      "form" : "8-K",
-      "path" : "edgar/data/796343/0001104659-05-040250.txt",
-      "date" : "2005-08-18"
-  }
+      "form" : "SC TO-I/A",
+      "path" : "edgar/data/1107194/0000891618-04-001377.txt",
+      "date" : "2004-12-13"
+    }
   ],
-  "name" : "ADOBE SYSTEMS INC",
-  "lastDocument" : "2006-10-11",
-  "lastUpdate" : "2018-01-18T19:27:47.797+07:00",
-  "NumberOfDocuments" : 5,
-  "fillings" : {
-    "DeferredIncomeTaxes" : [
-      {
-        "endDate" : "2005-09-02",
-        "startDate" : "2004-12-04",
-        "value" : -40293000.0,
-        "updated" : "2005-10-05"
-      },
-      {
-        "updated" : "2006-02-08",
-        "startDate" : "2003-11-29",
-        "endDate" : "2004-12-03",
-        "value" : 46270000
-      }
-    ]
-  }
+  "name" : "CENTILLIUM COMMUNICATIONS INC"
 }
+
+
 ```
 
 Take account of values for a position with the same `startDate`'s and `endDate`'s. The `updated` field shows the latest.
