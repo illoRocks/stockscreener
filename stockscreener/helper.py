@@ -1,5 +1,14 @@
 from datetime import datetime
+import logging
 import re
+
+logger = logging.getLogger(__main__)
+
+def num(s):
+    try:
+        return int(s)
+    except ValueError:
+        return float(s)
 
 
 def ctime(t, digit=1):
@@ -21,10 +30,10 @@ def ctime(t, digit=1):
             w = t[s]
             n += 1
     else:
-        print('TypeError: variable is %s. It must be dict or list!' % type(t))
+        logger.error('TypeError: variable is %s. It must be dict or list!' % type(t))
         return
     # summary += '\t' + str(type(t))
-    print(summary)
+    logger.debug(summary)
 
 
 def bool_or_int(v):
@@ -41,7 +50,8 @@ def bool_or_int(v):
 
 
 def parse_date(str):
-
+    if str == None:
+        return None
     # pattern = re.compile("[0-9]{4}-[0-9]{2}-[0-9]{2}")
     # pattern.match(str)
 

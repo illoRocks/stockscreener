@@ -8,7 +8,6 @@ import datetime
 import requests
 import pymongo
 import io
-from pprint import pprint
 from collections import defaultdict
 from urllib.request import urlopen
 from io import BytesIO
@@ -33,7 +32,6 @@ class SecIdx(MongoHelper):
     def __init__(self):
         super().__init__()
         self.idx = []
-        self.session = {}
 
     def download_idx(self, init=False, quarterly_files=list()):
         """if init then 1993 until the most recent quarter"""

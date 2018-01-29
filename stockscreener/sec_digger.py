@@ -163,15 +163,16 @@ class SecDigger(SecIdx, MongoHelper):
             else:
                 try:
                     self.col_companies.update_one(**res['query_company'])
-                    self.col_financial_positions.update_one(**res['query_financial_positions'])
+                    self.col_financial_positions.insert_many(res['query_financial_positions'], ordered=False)
                 except TypeError:
                     logger.error(res['query_company'])
                     quit()
                 except pymongo.errors.WriteError as err:
                     logger.error(res['query_company'])
-                    logger.error(res['query_financial_positions'])
                     logger.error('Please check the query: WriteError %s' % err)
                     quit()
+                except pymongo.errors.BulkWriteError as err:
+                    pass
 
                 self.col_edgar_path.update({'_id': res['cik'], 'edgar_path.path': res['edgar_path']},
                                            {'$set': {'edgar_path.$.log': 'stored'}}, False, True)
@@ -220,6 +221,10 @@ if __name__ == '__main__':
 
     # connect to Database
     sd.connect()
-
+    sd.col_financial_positions.insert_many([
+        {'startDate': datetime.datetime(2003, 11, 29, 0, 1), 'cik': '123', 'label': 'WeightedAverageNumberDilutedSharesOutstanding', 'updated': datetime.datetime(2006, 2, 8, 0, 0), 'value': 495626000, 'endDate': datetime.datetime(2004, 12, 3, 0, 0)},
+        {'startDate': datetime.datetime(2003, 11, 29, 0, 2), 'cik': '123 f', 'label': 'OperatingExpenses', 'updated': datetime.datetime(2006, 2, 8, 0, 0), 'value': 970409000, 'endDate': datetime.datetime(2004, 12, 3, 0, 0)}, 
+        {'startDate': datetime.datetime(2003, 11, 29, 0, 2), 'cik': '123', 'label': 'IssuanceCompensatoryStockAdditionalPaidCapital', 'updated': datetime.datetime(2006, 2, 8, 0, 0), 'value': 225000, 'endDate': datetime.datetime(2004, 12, 3, 0, 0)}
+        ], ordered=False)
 
 # edgar/data/1000045/0001193125-11-216128.txt'

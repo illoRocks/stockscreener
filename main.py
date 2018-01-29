@@ -44,4 +44,3 @@ sd.get_files_from_web(
     cik='796343',
     multiprocessing=8
 )
-print(sd)

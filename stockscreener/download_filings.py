@@ -13,9 +13,9 @@ import logging
 logger = logging.getLogger(__name__)
 
 try:
-    from .helper import parse_date
+    from .helper import parse_date, num
 except (ImportError, SystemError):
-    from helper import parse_date
+    from helper import parse_date, num
 
 
 ''' TODO: rename '''
@@ -107,7 +107,10 @@ class XbrlCrawler:
             with open(file_path + '/' + filename, 'w') as file:
                 file.write('%s\n' % txt)
 
-    def parse(self, local_path = None):
+    # def parseLocalFile(local_path):
+    #     self.parse({}, local_path=local_path)
+
+    def parse(self, local_path=None):
         """create SAX-Parser and parse the xbrl"""
 
         if local_path == None:
@@ -128,13 +131,11 @@ class XbrlCrawler:
                 return 'no xbrl found!'
 
             it = ET.iterparse(StringIO(self.files[filename]))
-        
+
         else:
             with open(local_path, 'r') as f:
                 xbrl = f.read()
             it = ET.iterparse(StringIO(xbrl))
-            # print('local_path noch nicht implementiert!!')
-            # quit()
 
         # strip all namespaces
         try:
@@ -152,12 +153,6 @@ class XbrlCrawler:
             self.save_documents("logs/errors")
             quit()
 
-        def num(s):
-            try:
-                return int(s)
-            except ValueError:
-                return float(s)
-
         root = it.root
         context = defaultdict(dict)
         data = defaultdict(dict)
@@ -167,52 +162,61 @@ class XbrlCrawler:
             if child.tag == 'context':
                 for period in child.findall('period'):
                     for date in period:
-                        date.text =parse_date(date.text)
+                        date.text = parse_date(date.text)
                         context[child.attrib['id']][date.tag] = date.text
                 for entity in child.findall('entity'):
                     for segment in entity.findall('segment'):
-                        for member in segment.findall('explicitMember'):
-                            if ':' in member.text:
-                                member.text = member.text.split(':', 1)[1]
+
+                        if len(segment.findall('explicitMember')) != 0:
+                            segment_arr = [m.text for m in segment.findall('explicitMember')]
+                        else:
+                            # TODO: is this a general rule??
+                            segment_arr = [segment[0].tag, ]
+
+                        for member in segment_arr:
+                            if ':' in member:
+                                member = member.split(':', 1)[1]
                             if 'segment' in context[child.attrib['id']]:
-                                context[child.attrib['id']]['segment'].append(member.text)
+                                context[child.attrib['id']
+                                        ]['segment'].append(member)
                             else:
-                                context[child.attrib['id']]['segment'] = [member.text,]
+                                context[child.attrib['id']]['segment'] = [
+                                    member, ]
+
             elif search('EntityRegistrantName|TradingSymbol|CurrentFiscalYearEndDate|CommonStockDescription', child.tag, flags=IGNORECASE):
                 misc[child.tag] = child.text
             elif pattern.match(str(child.text)):
                 data[child.attrib['contextRef']][child.tag] = num(child.text)
 
-        content = defaultdict(dict)
+        content = []
         for ref, values in data.items():
             for item in values:
-                content[item].setdefault('$each', []).append(
-                    {**context[ref],  # startDate and endDate
-                     'updated': self.date,
-                     'value': data[ref][item],
-                     'url': self.url})
-
+                content.append({
+                    'cik': self.cik,
+                    **context[ref], # startDate & endDate || instant || segment
+                    'updated': parse_date(self.date),
+                    'value': data[ref][item],
+                    'label': item
+                })
 
         if content is None or len(content) == 0:
             return "error no items in %s" % self.url
 
         query_company = {'filter': {'_id': self.cik},
-                        'update': {"$set": {'lastDocument': self.date,
-                                            'lastUpdate': datetime.today()},
-                                    '$inc': {'NumberOfDocuments': 1} },
-                        'upsert': True}
+                         'update': {'$set': {'lastDocument': self.date,
+                                             'lastUpdate': datetime.today()},
+                                    '$inc': {'NumberOfDocuments': 1}},
+                         'upsert': True}
 
-        query_financial_positions = {'filter': {'_id': self.cik},
-                 'update': {'$addToSet': {**content} },
-                 'upsert': True}
+        query_financial_positions = content
 
         for k, v in misc.items():
             query_company['update']['$set'][k] = v
 
-        return { 
-            'query_company': query_company, 
+        return {
+            'query_company': query_company,
             'query_financial_positions': query_financial_positions,
-            'cik': self.cik, 
+            'cik': self.cik,
             'edgar_path': self.url.replace('https://www.sec.gov/Archives/', '')
         }
 
@@ -235,12 +239,11 @@ if __name__ == '__main__':
     )
 
     crawler = XbrlCrawler(
-        'https://www.sec.gov/Archives/edgar/data/1001039/0001001039-13-000164.txt')
-    print(crawler)
+        'https://www.sec.gov/Archives/edgar/data/796343/0001104659-07-072546.txt')
     # crawler.download()
-    
-    crawler.parse('/home/olli/Repositories-Next/Bots/stockscreener/test/1001039/0001001039-13-000164/dis-20130928.xml')
 
-    # print(target)
-    target = path.join(path.dirname(path.abspath(__file__)), '..', 'test')
+    crawler.parse(
+        '/home/olli/Repositories-Next/Bots/stockscreener/test/796343/0001104659-07-072546/adbe-20070917.xml')
+
+    # target = path.join(path.dirname(path.abspath(__file__)), '..', 'test')
     # crawler.save_documents(target)
