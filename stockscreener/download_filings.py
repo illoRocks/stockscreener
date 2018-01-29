@@ -207,7 +207,7 @@ class XbrlCrawler:
         if content is None or len(content) == 0:
             return "error no items in %s" % self.url
 
-        query_company = {'filter': {'_id': self.cik},
+        query_company = {'filter': {'cik': self.cik},
                          'update': {'$set': {'lastDocument': self.date,
                                              'lastUpdate': datetime.today()},
                                     '$inc': {'NumberOfDocuments': 1}},

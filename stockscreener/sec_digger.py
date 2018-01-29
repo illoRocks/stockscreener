@@ -103,7 +103,7 @@ class SecDigger(SecIdx, MongoHelper):
         # add some other criterion
         if cik:
             query.append(
-                {'$match': {'_id': {'$in': [cik] if type(cik) == str else cik}}})
+                {'$match': {'cik': {'$in': [cik] if type(cik) == str else cik}}})
         elif ticker:
             query.append(
                 {'$match': {'ticker': {'$in': [ticker] if type(ticker) == str else ticker}}})
@@ -122,7 +122,7 @@ class SecDigger(SecIdx, MongoHelper):
                 for item in file:
                     ciks.append(item.replace("\n", ""))
             query.append(
-                {'$match': {'_id': {'$in': ciks}}})
+                {'$match': {'cik': {'$in': ciks}}})
         else:
             logger.error("no company identifier")
             quit()
@@ -133,8 +133,7 @@ class SecDigger(SecIdx, MongoHelper):
             query.append({'$limit': number_of_files})
 
         # noinspection PyTypeChecker
-        query.append({'$project': {'_id': 0,
-                                   'cik': '$_id',
+        query.append({'$project': {'cik': 1,
                                    'name': 1,
                                    'url': '$edgar_path.path',
                                    'form': '$edgar_path.form',
@@ -158,7 +157,7 @@ class SecDigger(SecIdx, MongoHelper):
 
             if type(res) == str:
                 if 'error' in res:
-                    self.col_edgar_path.update({'_id': res['cik'], 'edgar_path.path': res['edgar_path']},
+                    self.col_edgar_path.update({'cik': res['cik'], 'edgar_path.path': res['edgar_path']},
                                                {'$set': {'edgar_path.$.log': 'error'}}, False, True)
             else:
                 try:
@@ -174,7 +173,7 @@ class SecDigger(SecIdx, MongoHelper):
                 except pymongo.errors.BulkWriteError as err:
                     pass
 
-                self.col_edgar_path.update({'_id': res['cik'], 'edgar_path.path': res['edgar_path']},
+                self.col_edgar_path.update({'cik': res['cik'], 'edgar_path.path': res['edgar_path']},
                                            {'$set': {'edgar_path.$.log': 'stored'}}, False, True)
 
             self.session['processed'] += 1

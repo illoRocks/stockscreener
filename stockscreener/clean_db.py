@@ -112,10 +112,10 @@ class DbCleaner(MongoHelper):
 
     def getPositionNames(self, cik):
         pipeline = [
-            {"$match": {"_id": cik}},
+            {"$match": {"cik": cik}},
             {"$project": {"arrayofkeyvalue": {"$objectToArray": "$$ROOT"}}},
             {"$unwind": "$arrayofkeyvalue"},
-            {"$group": {"_id": cik, "allkeys": {"$addToSet": "$arrayofkeyvalue.k"}}}
+            {"$group": {"cik": cik, "allkeys": {"$addToSet": "$arrayofkeyvalue.k"}}}
         ]
         result = self.col_financial_positions.aggregate(pipeline)
         result = list(result)

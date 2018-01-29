@@ -86,7 +86,8 @@ class SecIdx(MongoHelper):
                     for line in z:
                         if '----' in line.decode('latin-1'):
                             break
-                    self.idx.extend(tuple(line.decode('latin-1').rstrip().split('|')) for line in z)
+                    self.idx.extend(
+                        tuple(line.decode('latin-1').rstrip().split('|')) for line in z)
             logger.debug(url)
 
         loop = asyncio.get_event_loop()
@@ -99,17 +100,17 @@ class SecIdx(MongoHelper):
         """save idx to mongodb"""
 
         if not self.connected:
-            logging.error(self.status)
+            logger.error(self.status)
             quit()
 
         elif len(self.idx) == 0:
-            logging.debug('need files!')
+            logger.debug('need files!')
 
         else:
-            idx_dict = defaultdict(dict)
-            logging.debug("write data to database...")
+            logger.info("prepare query...")
+            updates = []
             for cik, name, form, date, path in self.idx:
-                self.col_edgar_path.update({'_id': cik},
+                update = pymongo.UpdateOne({'cik': cik},
                                            {'$set': {'name': name},
                                             '$addToSet': {'edgar_path': {
                                                 'form': form,
@@ -117,7 +118,13 @@ class SecIdx(MongoHelper):
                                                 'path': path,
                                                 'log': None}}},
                                            upsert=True)
+                updates.append(update)
+
+            logger.info("write to database...")
+            self.col_edgar_path.bulk_write(updates, ordered=False)
             logging.debug("saved all paths")
+
+            quit()
 
     def __str__(self):
         if len(self.idx) == 0:
