@@ -16,12 +16,14 @@ from zipfile import ZipFile
 from urllib.request import urlopen, build_opener
 from zipfile import ZipFile
 import logging
+import threading
+import asyncio
+import aiohttp
 
 try:
     from .mongo_db import MongoHelper
 except (ImportError, SystemError):
     from mongo_db import MongoHelper
-
 
 
 import logging
@@ -74,30 +76,24 @@ class SecIdx(MongoHelper):
                     last_year, last_quarter),
                 'https://www.sec.gov/Archives/edgar/full-index/xbrl.zip']
 
-        for url in quarterly_files:
-            logging.debug(url)
-            try:
-                s = requests.Session()
-                s.trust_env = False
-                response = s.get(url, stream=True)
-                if response.status_code == 503:
-                    response.raise_for_status()
-            except requests.exceptions.ConnectionError:
-                logging.debug("Please check the internet connection!")
-                quit()
-            except requests.exceptions.HTTPError:
-                logging.debug("oops something unexpected happened!", url)
-                continue
+        async def getUrl(url):
+            async with aiohttp.ClientSession() as session:
+                async with session.get(url) as resp:
+                    data = await resp.read()
 
-            with ZipFile(BytesIO(response.content)) as zfile:
+            with ZipFile(BytesIO(data)) as zfile:
                 with zfile.open('xbrl.idx') as z:
                     for line in z:
                         if '----' in line.decode('latin-1'):
                             break
-                    self.idx.extend(
-                        [tuple(line.decode('latin-1').rstrip().split('|')) for line in z])
+                    self.idx.extend(tuple(line.decode('latin-1').rstrip().split('|')) for line in z)
+            logger.debug(url)
 
-            logging.debug('File downloaded')
+        loop = asyncio.get_event_loop()
+        loop.run_until_complete(asyncio.gather(
+            *(getUrl(args) for args in quarterly_files)))
+
+        logger.debug('Files downloaded')
 
     def save_idx(self):
         """save idx to mongodb"""
@@ -131,17 +127,24 @@ class SecIdx(MongoHelper):
 
 
 if __name__ == '__main__':
+
+    logging.basicConfig(
+        level=logging.DEBUG,
+        format='%(levelname)s/%(module)s/%(funcName)s %(message)s'
+    )
+
     i = SecIdx()
-    i.save_idx()  # Not connected to database!
-    logging.debug(i)  # no files!
-    # , quarterly_files=['https://www.sec.gov/Archives/edgar/full-index/2012/QTR3/xbrl.zip', ])
-    i.download_idx()
-    logging.debug(i)  # paths: NUMBER
-    i.save_idx()  # Not connected to database!
-    i.connect(database='sec_digger', collection='stocks')
-    i.save_idx()
-    logging.debug("finish")
+    # i.save_idx()  # Not connected to database!
+    # logging.debug(i)  # no files!
+    # # , quarterly_files=['https://www.sec.gov/Archives/edgar/full-index/2012/QTR3/xbrl.zip', ])
+    # i.download_idx()
+    # logging.debug(i)  # paths: NUMBER
+    # i.save_idx()  # Not connected to database!
+    # i.connect(database='sec_digger', collection='stocks')
+    # i.save_idx()
+    # logging.debug("finish")
 
     # # Download current Index
-    # i.download_idx(whole=False)
+    i.download_idx(init=True)
+
     # i.save_idx()
