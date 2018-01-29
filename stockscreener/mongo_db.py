@@ -35,6 +35,7 @@ class MongoHelper:
             self.col_financial_positions = db[name_reports]
             self.col_clean_financial_positions = db['cleanFinancialPositions']
 
+            # TODO weiteren index für schnelle updates anlegen
             self.col_financial_positions.create_index([
                 ('cik', pymongo.ASCENDING),
                 ('label', pymongo.ASCENDING),
@@ -42,6 +43,9 @@ class MongoHelper:
                 ('startDate',  pymongo.ASCENDING),
                 ('endDate',  pymongo.ASCENDING),
                 ('instant',  pymongo.ASCENDING)], unique=True)
+
+            self.col_edgar_path.create_index([
+                ('cik', pymongo.ASCENDING)], unique=True)
 
             self.connected = True
 
