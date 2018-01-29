@@ -14,6 +14,7 @@ config.read(['config.ini', 'stockscreener.ini'])
 DATABASE = config['DATABASE']
 LOGGING = config['LOGGING']
 PARSER_OPTIONS = config['PARSER_OPTIONS']
+DATABASE_NAMES = config['DATABASE_NAMES']
 
 WORKING_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -119,7 +120,11 @@ sd = SecDigger()
 # connect to Database
 sd.connect(
     host=args.host,
-    port=args.port
+    port=args.port,
+    name_collection = DATABASE_NAMES.get('collection', 'stockscreener'),
+    name_path = DATABASE_NAMES.get('path', 'path'),
+    name_companies = DATABASE_NAMES.get('companies', 'companies'),
+    name_reports = DATABASE_NAMES.get('reports', 'reports')    
 )
 
 # fill database with paths

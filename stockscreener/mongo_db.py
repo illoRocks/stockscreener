@@ -15,16 +15,24 @@ class MongoHelper:
         self.connected = False
         self.status = 'Not connected to database!'
 
-    def connect(self, host='localhost', port=27017, db_name='stockscreener'):
+    def connect(
+        self,
+        host = 'localhost',
+        port = 27017,
+        name_collection ='stockscreener',
+        name_path ='path',
+        name_companies ='companies',
+        name_reports ='reports'
+    ):
         ''' TODO: mongodb-connection-string and password username '''
 
         try:
             conn = pymongo.MongoClient(host, port)
-            db = conn[db_name]
+            db = conn[name_collection]
 
-            self.col_edgar_path = db['edgarPath']
-            self.col_companies = db['companies']
-            self.col_financial_positions = db['financialPositions']
+            self.col_edgar_path = db[name_path]
+            self.col_companies = db[name_companies]
+            self.col_financial_positions = db[name_reports]
             self.col_clean_financial_positions = db['cleanFinancialPositions']
 
             self.col_financial_positions.create_index([
@@ -33,7 +41,7 @@ class MongoHelper:
                 ('updated',  pymongo.ASCENDING),
                 ('startDate',  pymongo.ASCENDING),
                 ('endDate',  pymongo.ASCENDING),
-                ('instant',  pymongo.ASCENDING)],unique=True)
+                ('instant',  pymongo.ASCENDING)], unique=True)
 
             self.connected = True
 
