@@ -121,11 +121,11 @@ class SecDigger(SecIdx, MongoHelper):
         logger.debug('path query: %s' % query)
         # execute download for each edgar_path
         tasks = []
-        for row in self.col_edgar_path.find(query).limit(number_of_files):
-            row['save'] = save
-            row['local_file_path'] = local_file_path
-            row['save_to_db'] = save_to_db
-            tasks.append(row)
+        for doc in self.col_edgar_path.find(query).limit(number_of_files):
+            doc['save'] = save
+            doc['local_file_path'] = local_file_path
+            doc['save_to_db'] = save_to_db
+            tasks.append(doc)
             
         if len(tasks) == 0:
             logger.debug(query)
