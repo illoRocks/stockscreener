@@ -22,7 +22,8 @@ class MongoHelper:
         name_collection ='stockscreener',
         name_path ='paths',
         name_companies ='companies',
-        name_reports ='reports'
+        name_reports ='reports',
+        name_segments = 'segments'
     ):
         ''' TODO: mongodb-connection-string and password username '''
 
@@ -33,6 +34,7 @@ class MongoHelper:
             self.col_edgar_path = db[name_path]
             self.col_companies = db[name_companies]
             self.col_financial_positions = db[name_reports]
+            self.col_segments = db[name_segments]
             self.col_clean_financial_positions = db['cleanFinancialPositions']
 
             # TODO weiteren index für schnelle updates anlegen
@@ -50,6 +52,10 @@ class MongoHelper:
 
             self.col_edgar_path.create_index([
                 ('path', pymongo.ASCENDING)], unique=True)
+
+            self.col_segments.create_index([
+                ('label', pymongo.ASCENDING)], unique=True)
+                
 
             self.connected = True
 

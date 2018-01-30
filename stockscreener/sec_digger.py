@@ -42,11 +42,11 @@ class SecDigger(SecIdx, MongoHelper):
         return SecDigger.mp_ffw(**kwargs)
 
     @staticmethod
-    def mp_ffw(cik, date, url, save=False, local_file_path='temp', save_to_db=True, **kwargs):
+    def mp_ffw(cik, date, path, save=False, local_file_path='temp', save_to_db=True, **kwargs):
         """create Download-Handler"""
 
         t = {'start': time.time()}
-        df = XbrlCrawler(url=url, cik=cik, date=date)
+        df = XbrlCrawler(url=path, cik=cik, date=date)
         info = df.download()
         t['download'] = time.time()
 
@@ -128,7 +128,6 @@ class SecDigger(SecIdx, MongoHelper):
             tasks.append(doc)
             
         if len(tasks) == 0:
-            logger.debug(query)
             logger.warning('no more filings!')
             quit()
 
@@ -137,12 +136,11 @@ class SecDigger(SecIdx, MongoHelper):
 
             if type(res) == str:
                 if 'error' in res:
-                    self.col_edgar_path.update({'cik': res['cik'], 'path': res['edgar_path']},
+                    self.col_edgar_path.update({'path': res['edgar_path']},
                                                {'$set': {'log': 'error'}}, False, True)
             else:
                 try:
                     self.col_companies.update_one(**res['query_company'])
-                    self.col_financial_positions.insert_many(res['query_financial_positions'], ordered=False)
                 except TypeError:
                     logger.error(res['query_company'])
                     quit()
@@ -150,10 +148,21 @@ class SecDigger(SecIdx, MongoHelper):
                     logger.error(res['query_company'])
                     logger.error('Please check the query: WriteError %s' % err)
                     quit()
+
+                try:
+                    self.col_financial_positions.insert_many(res['query_financial_positions'], ordered=False)
+                except pymongo.errors.BulkWriteError as err:
+                    pass
+                
+                try:
+                    self.col_segments.insert_many(res['query_segment'], ordered=False)
+                except TypeError:
+                    logger.debug('no segments in %s' % res['edgar_path'])
                 except pymongo.errors.BulkWriteError as err:
                     pass
 
-                self.col_edgar_path.update({'cik': res['cik'], 'path': res['edgar_path']},
+                
+                self.col_edgar_path.update({'path': res['edgar_path']},
                                            {'$set': {'log': 'stored'}}, False, True)
 
             self.session['processed'] += 1
@@ -168,7 +177,6 @@ class SecDigger(SecIdx, MongoHelper):
                                 (round((time.time() - start_time) / 60), self.session['processed'], data['edgar_path']))
 
         else:
-
             worker = 4 if multiprocessing is bool else multiprocessing
             with Pool(worker) as pool:
 
@@ -182,7 +190,7 @@ class SecDigger(SecIdx, MongoHelper):
                     (round((time.time() - start_time) / 60), self.session['processed'], data['edgar_path']))
 
     def __str__(self):
-        """print all abaut this session"""
+        """print all about this session"""
         l = ''
         for key, value in self.session.items():
             l += '%s:\t%s\n' % (key, value)
@@ -190,9 +198,7 @@ class SecDigger(SecIdx, MongoHelper):
 
 
 if __name__ == '__main__':
-    """lade IDX herunter und seicher diese in DB"""
-
-    import logging
+    
     logging.basicConfig(level=logging.DEBUG)
 
     # use SecDigger
@@ -202,7 +208,7 @@ if __name__ == '__main__':
     sd.connect()
 
     # 
-    sd.get_files_from_web(cik="1080224")
+    sd.get_files_from_web(cik="104169")
 
     # insert reports
     # sd.col_financial_positions.insert_many([

@@ -81,6 +81,7 @@ class SecIdx(MongoHelper):
             async with aiohttp.ClientSession() as session:
                 async with session.get(url) as resp:
                     data = await resp.read()
+                    await asyncio.sleep(5)
                     
             with ZipFile(BytesIO(data)) as zfile:
                 with zfile.open('xbrl.idx') as z:

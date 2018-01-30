@@ -190,6 +190,7 @@ class XbrlCrawler:
                 data[child.attrib['contextRef']][child.tag] = num(child.text)
 
         content = []
+        query_segment = []
         for ref, values in data.items():
             for item in values:
                 c = {
@@ -203,6 +204,9 @@ class XbrlCrawler:
                 if 'startDate' in c:
                     c['duration'] = (c['endDate'] - c['startDate']).days
                 content.append(c)
+                
+                if 'segment' in context[ref]:
+                    query_segment.extend([{'label': l} for l in context[ref]['segment']])
 
         if content is None or len(content) == 0:
             return "error no items in %s" % self.url
@@ -221,6 +225,7 @@ class XbrlCrawler:
         return {
             'query_company': query_company,
             'query_financial_positions': query_financial_positions,
+            'query_segment': query_segment,
             'cik': self.cik,
             'edgar_path': self.url.replace('https://www.sec.gov/Archives/', '')
         }

@@ -94,7 +94,7 @@ p.add_argument('-multi',
 
 p.add_argument('-limit',
                type=int,
-               default=PARSER_OPTIONS.getint('number_of_files', -1),
+               default=PARSER_OPTIONS.getint('number_of_files', 0),
                help='limit the number of downloads'
                )
 
