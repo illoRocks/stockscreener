@@ -74,7 +74,7 @@ class SecDigger(SecIdx, MongoHelper):
         cik_path=None,
         save=False,
         save_to_db=True,
-        number_of_files=-1,
+        number_of_files=0,
         local_file_path='temp'
     ):
         logger.info('''
@@ -96,57 +96,37 @@ class SecDigger(SecIdx, MongoHelper):
 
         start_time = time.time()
 
-        query = [{'$unwind': '$edgar_path'},
-                 {'$match': {'edgar_path.log': {'$eq': None}}},
-                 {'$match': {'edgar_path.form': {'$in': ['10-K', '10-Q']}}}]
+        query = {}
+        query['log'] = {'$eq': None}
+        query['form'] = {'$in': ['10-K', '10-Q']}
 
         # add some other criterion
         if cik:
-            query.append(
-                {'$match': {'cik': {'$in': [cik] if type(cik) == str else cik}}})
+            query['cik'] = {'$in': [cik] if type(cik) == str else cik}
         elif ticker:
-            query.append(
-                {'$match': {'ticker': {'$in': [ticker] if type(ticker) == str else ticker}}})
+            query['ticker'] = {'$in': [ticker] if type(ticker) == str else ticker}
         elif name:
-            query.append(
-                {'$match': {'name': {'$in': [name] if type(name) == str else name}}})
+            query['name'] = {'$in': [name] if type(name) == str else name}
         elif name_regex:
-            regx = []
-            for r in name_regex:
-                regx.append(re.compile(r, re.IGNORECASE))
-            query.append(
-                {'$match': {'name': {'$in': regx}}})
+            regx = [re.compile(r, re.IGNORECASE) for r in name_regex]
+            query['name'] = {'$in': regx}
         elif cik_path:
-            ciks = []
             with open(cik_path, 'r') as file:
-                for item in file:
-                    ciks.append(item.replace("\n", ""))
-            query.append(
-                {'$match': {'cik': {'$in': ciks}}})
+                ciks = [i.replace("\n", "") for i in file]
+            query['cik'] = {'$in': ciks}
         else:
             logger.error("no company identifier")
             quit()
 
-        logger.debug(query)
-
-        if number_of_files > 0:
-            query.append({'$limit': number_of_files})
-
-        # noinspection PyTypeChecker
-        query.append({'$project': {'cik': 1,
-                                   'name': 1,
-                                   'url': '$edgar_path.path',
-                                   'form': '$edgar_path.form',
-                                   'date': '$edgar_path.date'}})
-
+        logger.debug('path query: %s' % query)
         # execute download for each edgar_path
         tasks = []
-        for row in self.col_edgar_path.aggregate(query):
+        for row in self.col_edgar_path.find(query).limit(number_of_files):
             row['save'] = save
             row['local_file_path'] = local_file_path
             row['save_to_db'] = save_to_db
             tasks.append(row)
-
+            
         if len(tasks) == 0:
             logger.debug(query)
             logger.warning('no more filings!')
@@ -157,8 +137,8 @@ class SecDigger(SecIdx, MongoHelper):
 
             if type(res) == str:
                 if 'error' in res:
-                    self.col_edgar_path.update({'cik': res['cik'], 'edgar_path.path': res['edgar_path']},
-                                               {'$set': {'edgar_path.$.log': 'error'}}, False, True)
+                    self.col_edgar_path.update({'cik': res['cik'], 'path': res['edgar_path']},
+                                               {'$set': {'log': 'error'}}, False, True)
             else:
                 try:
                     self.col_companies.update_one(**res['query_company'])
@@ -173,8 +153,8 @@ class SecDigger(SecIdx, MongoHelper):
                 except pymongo.errors.BulkWriteError as err:
                     pass
 
-                self.col_edgar_path.update({'cik': res['cik'], 'edgar_path.path': res['edgar_path']},
-                                           {'$set': {'edgar_path.$.log': 'stored'}}, False, True)
+                self.col_edgar_path.update({'cik': res['cik'], 'path': res['edgar_path']},
+                                           {'$set': {'log': 'stored'}}, False, True)
 
             self.session['processed'] += 1
 
@@ -220,10 +200,15 @@ if __name__ == '__main__':
 
     # connect to Database
     sd.connect()
-    sd.col_financial_positions.insert_many([
-        {'startDate': datetime.datetime(2003, 11, 29, 0, 1), 'cik': '123', 'label': 'WeightedAverageNumberDilutedSharesOutstanding', 'updated': datetime.datetime(2006, 2, 8, 0, 0), 'value': 495626000, 'endDate': datetime.datetime(2004, 12, 3, 0, 0)},
-        {'startDate': datetime.datetime(2003, 11, 29, 0, 2), 'cik': '123 f', 'label': 'OperatingExpenses', 'updated': datetime.datetime(2006, 2, 8, 0, 0), 'value': 970409000, 'endDate': datetime.datetime(2004, 12, 3, 0, 0)}, 
-        {'startDate': datetime.datetime(2003, 11, 29, 0, 2), 'cik': '123', 'label': 'IssuanceCompensatoryStockAdditionalPaidCapital', 'updated': datetime.datetime(2006, 2, 8, 0, 0), 'value': 225000, 'endDate': datetime.datetime(2004, 12, 3, 0, 0)}
-        ], ordered=False)
+
+    # 
+    sd.get_files_from_web(cik="1080224")
+
+    # insert reports
+    # sd.col_financial_positions.insert_many([
+    #     {'startDate': datetime.datetime(2003, 11, 29, 0, 1), 'cik': '123', 'label': 'WeightedAverageNumberDilutedSharesOutstanding', 'updated': datetime.datetime(2006, 2, 8, 0, 0), 'value': 495626000, 'endDate': datetime.datetime(2004, 12, 3, 0, 0)},
+    #     {'startDate': datetime.datetime(2003, 11, 29, 0, 2), 'cik': '123 f', 'label': 'OperatingExpenses', 'updated': datetime.datetime(2006, 2, 8, 0, 0), 'value': 970409000, 'endDate': datetime.datetime(2004, 12, 3, 0, 0)}, 
+    #     {'startDate': datetime.datetime(2003, 11, 29, 0, 2), 'cik': '123', 'label': 'IssuanceCompensatoryStockAdditionalPaidCapital', 'updated': datetime.datetime(2006, 2, 8, 0, 0), 'value': 225000, 'endDate': datetime.datetime(2004, 12, 3, 0, 0)}
+    #     ], ordered=False)
 
 # edgar/data/1000045/0001193125-11-216128.txt'

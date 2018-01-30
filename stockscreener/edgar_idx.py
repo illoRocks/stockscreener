@@ -39,7 +39,7 @@ class SecIdx(MongoHelper):
         """if init then 1993 until the most recent quarter"""
 
         if type(quarterly_files) is not list:
-            raise TypeError('expect list!')
+            raise TypeError('quarterly_files: expect list!')
 
         current_year = datetime.date.today().year
         current_quarter = (datetime.date.today().month - 1) // 3 + 1
@@ -77,10 +77,11 @@ class SecIdx(MongoHelper):
                 'https://www.sec.gov/Archives/edgar/full-index/xbrl.zip']
 
         async def getUrl(url):
+            
             async with aiohttp.ClientSession() as session:
                 async with session.get(url) as resp:
                     data = await resp.read()
-
+                    
             with ZipFile(BytesIO(data)) as zfile:
                 with zfile.open('xbrl.idx') as z:
                     for line in z:
@@ -90,6 +91,7 @@ class SecIdx(MongoHelper):
                         tuple(line.decode('latin-1').rstrip().split('|')) for line in z)
             logger.debug(url)
 
+        logger.debug('download zip files...')
         loop = asyncio.get_event_loop()
         loop.run_until_complete(asyncio.gather(
             *(getUrl(args) for args in quarterly_files)))
@@ -108,24 +110,22 @@ class SecIdx(MongoHelper):
 
         else:
             logger.info("prepare query...")
-            updates = []
+            bulk = []
             for cik, name, form, date, path in self.idx:
-                update = pymongo.UpdateOne({'cik': cik},
-                                           {'$set': {'name': name},
-                                            '$addToSet': {'edgar_path': {
-                                                'form': form,
-                                                'date': date,
-                                                'path': path,
-                                                'log': None}}},
-                                           upsert=True)
-                updates.append(update)
+                bulk.append({'cik': cik,
+                             'path': path,
+                             'name': name,
+                             'form': form,
+                             'date': date,
+                             'log': None})
 
             logger.info("write to database...")
-            self.col_edgar_path.bulk_write(updates, ordered=False)
-            
+            try:
+                self.col_edgar_path.insert_many(bulk, ordered=False)
+            except pymongo.errors.BulkWriteError as err:
+                logging.error(err)
+                
             logging.debug("saved all paths")
-
-            quit()
 
     def __str__(self):
         if len(self.idx) == 0:
@@ -142,17 +142,18 @@ if __name__ == '__main__':
     )
 
     i = SecIdx()
+    i.connect()
     # i.save_idx()  # Not connected to database!
     # logging.debug(i)  # no files!
     # # , quarterly_files=['https://www.sec.gov/Archives/edgar/full-index/2012/QTR3/xbrl.zip', ])
     # i.download_idx()
     # logging.debug(i)  # paths: NUMBER
     # i.save_idx()  # Not connected to database!
-    # i.connect(database='sec_digger', collection='stocks')
     # i.save_idx()
     # logging.debug("finish")
 
     # # Download current Index
     i.download_idx(init=True)
 
-    # i.save_idx()
+    # store paths in database
+    i.save_idx()

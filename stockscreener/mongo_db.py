@@ -20,7 +20,7 @@ class MongoHelper:
         host = 'localhost',
         port = 27017,
         name_collection ='stockscreener',
-        name_path ='path',
+        name_path ='paths',
         name_companies ='companies',
         name_reports ='reports'
     ):
@@ -45,7 +45,11 @@ class MongoHelper:
                 ('instant',  pymongo.ASCENDING)], unique=True)
 
             self.col_edgar_path.create_index([
-                ('cik', pymongo.ASCENDING)], unique=True)
+                ('cik', pymongo.ASCENDING),
+                ('path', pymongo.ASCENDING)], unique=True)
+
+            self.col_edgar_path.create_index([
+                ('path', pymongo.ASCENDING)], unique=True)
 
             self.connected = True
 
