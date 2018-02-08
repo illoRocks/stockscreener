@@ -150,16 +150,12 @@ class SecDigger(SecIdx, MongoHelper):
                     quit()
 
                 try:
-                    self.col_financial_positions.insert_many(res['query_financial_positions'], ordered=False)
+                    self.col_financial_positions.bulk_write(res['query_financial_positions'], ordered=False)
                 except pymongo.errors.BulkWriteError as err:
-                    pass
+                    logger.debug(err.details)
                 
-                try:
-                    self.col_segments.insert_many(res['query_segment'], ordered=False)
-                except TypeError:
-                    logger.debug('no segments in %s' % res['edgar_path'])
-                except pymongo.errors.BulkWriteError as err:
-                    pass
+                if len(res['query_segment']) > 0:
+                    self.col_segments.bulk_write(res['query_segment'], ordered=False)
 
                 
                 self.col_edgar_path.update({'path': res['edgar_path']},
@@ -208,7 +204,7 @@ if __name__ == '__main__':
     sd.connect()
 
     # 
-    sd.get_files_from_web(cik="104169")
+    # sd.get_files_from_web(cik="104169")
 
     # insert reports
     # sd.col_financial_positions.insert_many([
@@ -216,5 +212,26 @@ if __name__ == '__main__':
     #     {'startDate': datetime.datetime(2003, 11, 29, 0, 2), 'cik': '123 f', 'label': 'OperatingExpenses', 'updated': datetime.datetime(2006, 2, 8, 0, 0), 'value': 970409000, 'endDate': datetime.datetime(2004, 12, 3, 0, 0)}, 
     #     {'startDate': datetime.datetime(2003, 11, 29, 0, 2), 'cik': '123', 'label': 'IssuanceCompensatoryStockAdditionalPaidCapital', 'updated': datetime.datetime(2006, 2, 8, 0, 0), 'value': 225000, 'endDate': datetime.datetime(2004, 12, 3, 0, 0)}
     #     ], ordered=False)
+
+    res = sd.col_companies.find({})
+    ciks = []
+
+    u1 = res[0]['reports']
+    u2 = res[1]['reports']
+    u3 = res[2]['reports']
+
+    l1 = len(u1)
+    l2 = len(u2)
+    l3 = len(u3)
+
+    eq = []
+    for i in u1:
+        for j in u2:
+            for k in u3:
+                if i == j or i == k or j == k:
+                    eq.append(i)
+    
+
+    print('result: ', len(eq))
 
 # edgar/data/1000045/0001193125-11-216128.txt'

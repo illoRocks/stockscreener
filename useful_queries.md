@@ -49,3 +49,12 @@ Only show yearly reports.
 Only show consolidated values.
 
 (comming soon)
+
+Clear database
+
+```js
+db.reports.drop()
+db.companies.drop()
+db.segments.drop()
+db.paths.update({}, {'$set': {'log': null}})
+```

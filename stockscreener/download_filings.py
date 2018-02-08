@@ -9,6 +9,8 @@ from re import search, sub, findall, IGNORECASE, compile
 import time
 import requests
 import logging
+import pymongo
+from bson.objectid import ObjectId
 
 logger = logging.getLogger(__name__)
 
@@ -189,12 +191,16 @@ class XbrlCrawler:
             elif pattern.match(str(child.text)):
                 data[child.attrib['contextRef']][child.tag] = num(child.text)
 
-        content = []
+        query_reports = []
         query_segment = []
+        report_ids = []
         for ref, values in data.items():
+            ref_ids = []
             for item in values:
+                _id = ObjectId()
                 c = {
-                    'cik': self.cik,
+                    '_id': _id,
+                    'company': self.cik,
                     # startDate & endDate || instant || segment
                     **context[ref],
                     'updated': parse_date(self.date),
@@ -203,28 +209,34 @@ class XbrlCrawler:
                 }
                 if 'startDate' in c:
                     c['duration'] = (c['endDate'] - c['startDate']).days
-                content.append(c)
-                
-                if 'segment' in context[ref]:
-                    query_segment.extend([{'label': l} for l in context[ref]['segment']])
+                query_reports.append(pymongo.InsertOne(c))
+                ref_ids.append(_id)
+                report_ids.append(_id)
 
-        if content is None or len(content) == 0:
+            if 'segment' in context[ref]:
+                query_segment.extend(
+                    [pymongo.UpdateOne(
+                        {'_id': l}, 
+                        {'$addToSet': {'reports': {'$each': ref_ids}}},
+                        upsert=True)
+                     for l in context[ref]['segment']])
+
+        if query_reports is None or len(query_reports) == 0:
             return "error no items in %s" % self.url
 
-        query_company = {'filter': {'cik': self.cik},
+        query_company = {'filter': {'_id': self.cik},
                          'update': {'$set': {'lastDocument': self.date,
                                              'lastUpdate': datetime.today()},
-                                    '$inc': {'NumberOfDocuments': 1}},
+                                    '$inc': {'NumberOfDocuments': 1},
+                                    '$addToSet': {'reports': {'$each': report_ids}}},
                          'upsert': True}
-
-        query_financial_positions = content
 
         for k, v in misc.items():
             query_company['update']['$set'][k] = v
 
         return {
             'query_company': query_company,
-            'query_financial_positions': query_financial_positions,
+            'query_financial_positions': query_reports,
             'query_segment': query_segment,
             'cik': self.cik,
             'edgar_path': self.url.replace('https://www.sec.gov/Archives/', '')

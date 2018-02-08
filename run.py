@@ -109,10 +109,16 @@ args = p.parse_args()
 
 # Setup Config
 if args.debug:
-    logging.basicConfig(
-        level=LOGGING.getint('level', 30),
-        format='%(levelname)s\t%(message)s'
-    )
+  level = 10
+elif args.info:
+  level = 20
+else:
+  level = LOGGING.getint('level', 30)
+
+logging.basicConfig(
+    level=level,
+    format='%(levelname)s\t%(message)s'
+)
 
 # use SecDigger
 sd = SecDigger()

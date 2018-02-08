@@ -39,22 +39,25 @@ class MongoHelper:
 
             # TODO weiteren index für schnelle updates anlegen
             self.col_financial_positions.create_index([
-                ('cik', pymongo.ASCENDING),
+                ('company', pymongo.ASCENDING),
                 ('label', pymongo.ASCENDING),
                 ('updated',  pymongo.ASCENDING),
                 ('startDate',  pymongo.ASCENDING),
                 ('endDate',  pymongo.ASCENDING),
-                ('instant',  pymongo.ASCENDING)], unique=True)
+                ('instant',  pymongo.ASCENDING),
+                ('value',  pymongo.ASCENDING),
+                ('duration',  pymongo.ASCENDING)])
+
 
             self.col_edgar_path.create_index([
-                ('cik', pymongo.ASCENDING),
+                ('_id', pymongo.ASCENDING),
                 ('path', pymongo.ASCENDING)], unique=True)
 
             self.col_edgar_path.create_index([
                 ('path', pymongo.ASCENDING)], unique=True)
 
-            self.col_segments.create_index([
-                ('label', pymongo.ASCENDING)], unique=True)
+            # self.col_segments.create_index([
+            #     ('label', pymongo.ASCENDING)], unique=True)
                 
 
             self.connected = True
