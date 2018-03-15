@@ -15,6 +15,14 @@ This project is under activ development!
 
 * pymongo
 
+### Instalation
+
+Install [Python 3](https://www.python.org/downloads/) and then run
+
+```sh
+git clone https://github.com/illoRocks/stockscreener
+```
+
 ## Usage
 
 Make sure that MongoDB is running on your machine!
@@ -97,28 +105,32 @@ sd.get_files_from_web(
 
 ### Use CLI
 
+Initialize the database with the folowing statement.
+
 ```sh
-python3 run.py --init --debug
+python3 scripts/run.py --init --debug
+```
+
+Choose your preffered statement.
+
+```sh
+python3 scripts/run.py -port 27017 -host localhost -cik 796343
 ```
 
 ```sh
-python3 run.py -port 27017 -host localhost -cik 796343
-```
-
-```sh
-python3 run.py -port 27017 -host localhost -multi 6 -nameRegex "^ibm" "coca.*cola"
+python3 scripts/run.py -port 27017 -host localhost -multi 6 -nameRegex "^ibm" "coca.*cola"
 ```
 
 use a text file with central index keys. seperated by line breaks.
 
 ```sh
-python3 run.py -cikPath dowjones.txt
+python3 scripts/run.py -cikPath dowjones.txt
 ```
 
 use `--help` for more informations
 
 ```sh
-python3 run.py --help
+python3 scripts/run.py --help
 ```
 
 #### config.ini
