@@ -14,13 +14,20 @@ This project is under activ development!
 ### Dependencies
 
 * pymongo
+* requests
 
 ### Instalation
 
-Install [Python 3](https://www.python.org/downloads/) and then run
+Install [Python 3](https://www.python.org/downloads/)
+
+Install stockscreener from source:
 
 ```sh
 git clone https://github.com/illoRocks/stockscreener
+
+cd stockscreener
+
+python3 setup.py install
 ```
 
 ## Usage

@@ -1,8 +1,10 @@
-from distutils.core import setup
+from setuptools import setup, find_packages
+from os import read
+import re
 
 
-def find_version(*file_paths):
-    version_file = read(*file_paths)
+def find_version(file_paths):
+    version_file = open("stockscreener/__init__.py", 'r').read()
     version_match = re.search(r"^__version__ = ['\"]([^'\"]*)['\"]",
                               version_file, re.M)
     if version_match:
@@ -10,7 +12,7 @@ def find_version(*file_paths):
     raise RuntimeError("Unable to find version string.")
 
 
-VERSION = find_version('torchvision', '__init__.py')
+VERSION = find_version('stockscreener/__init__.py')
 
 LONG_DESCRIPTION = open("README.md", 'r').read()
 
@@ -22,14 +24,12 @@ REQUIREMENTS = [
 setup(
     name='stockscreener',
     version=VERSION,
-    packages=['stockscreener'],
+    packages=find_packages(),
     author='Oliver Haag',
+    author_email='stockscreener@illo.rocks',
     url='https://github.com/illoRocks/stockscreener',
     license='Creative Commons Attribution-NonCommercial-ShareAlike 2.0 Germany License',
     long_description=LONG_DESCRIPTION,
-    author='Oliver Haag',
-    author_email='stockscreener@illo.rocks',
     description='Download XBRL from the SEC and store it to MongoDB or as local files.',
-    requires=REQUIREMENTS,
-    license='Creative Commons'
+    install_requires=REQUIREMENTS
 )
