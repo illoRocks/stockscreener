@@ -18,7 +18,8 @@ LONG_DESCRIPTION = open("README.md", 'r').read()
 
 REQUIREMENTS = [
     'requests',
-    'pymongo'
+    'pymongo',
+    'aiohttp'
 ]
 
 setup(
