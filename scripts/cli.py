@@ -165,7 +165,7 @@ sd.get_files_from_web(
 )
 
 # python3 scripts/cli.py --init --debug
-# python3 scripts/cli.py -port 27017 -host localhost -multi 9 -cik 796343 --skipIndex --debug
-# python3 scripts/cli.py -port 27017 -host localhost -multi 9 --debug -nameRegex "coca cola" -limit 5
+# python3 scripts/cli.py -port 27017 -host localhost -multi 8 -cik 796343 --skipIndex --debug
+# python3 scripts/cli.py -port 27017 -host localhost -multi 8 -nameRegex "coca cola" -limit 5
 # python3 scripts/cli.py -cikPath dowjones.txt --skipIndex
 # python3 scripts/cli.py -multi 0 -cik 796343 --skipIndex --debug -limit 1
