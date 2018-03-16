@@ -34,3 +34,6 @@ setup(
     description='Download XBRL from the SEC and store it to MongoDB or as local files.',
     install_requires=REQUIREMENTS
 )
+
+# sudo python3 setup.py install --record files.txt
+# cat files.txt | xargs sudo rm -rf && sudo rm files.txt
