@@ -5,5 +5,5 @@
     "**/__pycache__": true
   },
   "editor.glyphMargin": true,
-  "python.linting.enabled": false,
+  "gitlens.codeLens.enabled": false,
 }
