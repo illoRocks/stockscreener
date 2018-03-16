@@ -239,8 +239,6 @@ Logging system is not well implemented for multiprocessing!
     // ...
   ]
 }
-
-
 ```
 
 Take account of values for a position with the same `startDate`'s and `endDate`'s. The `updated` field shows the latest.
