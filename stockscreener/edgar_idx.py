@@ -19,6 +19,7 @@ import logging
 import threading
 import asyncio
 import aiohttp
+from pprint import pprint
 
 try:
     from .mongo_db import MongoHelper
@@ -122,9 +123,10 @@ class SecIdx(MongoHelper):
 
             logger.info("write to database...")
             try:
+                logging.info('ignore errors!')
                 self.col_edgar_path.insert_many(bulk, ordered=False)
             except pymongo.errors.BulkWriteError as err:
-                logging.error(err)
+                logging.error('BulkWriteError: %s' % err.details)
                 
             logging.debug("saved all paths")
 

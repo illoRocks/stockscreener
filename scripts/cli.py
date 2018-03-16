@@ -1,5 +1,8 @@
 #!/usr/bin/env python3.5
 
+import sys
+sys.path.insert(0, '../')
+
 import argparse
 import logging
 import os
@@ -109,11 +112,11 @@ args = p.parse_args()
 
 # Setup Config
 if args.debug:
-  level = 10
+    level = 10
 elif args.info:
-  level = 20
+    level = 20
 else:
-  level = LOGGING.getint('level', 30)
+    level = LOGGING.getint('level', 30)
 
 logging.basicConfig(
     level=level,
@@ -127,10 +130,10 @@ sd = SecDigger()
 sd.connect(
     host=args.host,
     port=args.port,
-    name_collection = DATABASE_NAMES.get('collection', 'stockscreener'),
-    name_path = DATABASE_NAMES.get('path', 'path'),
-    name_companies = DATABASE_NAMES.get('companies', 'companies'),
-    name_reports = DATABASE_NAMES.get('reports', 'reports')    
+    name_collection=DATABASE_NAMES.get('collection', 'stockscreener'),
+    name_path=DATABASE_NAMES.get('path', 'path'),
+    name_companies=DATABASE_NAMES.get('companies', 'companies'),
+    name_reports=DATABASE_NAMES.get('reports', 'reports')
 )
 
 # fill database with paths
@@ -161,8 +164,8 @@ sd.get_files_from_web(
     number_of_files=args.limit
 )
 
-# python3 run.py --init --debug
-# python3 run.py -port 27017 -host localhost -multi 9 -cik 796343 --skipIndex --debug
-# python3 run.py -port 27017 -host localhost -multi 9 --debug -nameRegex "coca cola" -limit 5
-# python3 run.py -cikPath dowjones.txt --skipIndex 
-# python3 run.py -multi 0 -cik 796343 --skipIndex --debug -limit 1
+# python3 scripts/cli.py --init --debug
+# python3 scripts/cli.py -port 27017 -host localhost -multi 9 -cik 796343 --skipIndex --debug
+# python3 scripts/cli.py -port 27017 -host localhost -multi 9 --debug -nameRegex "coca cola" -limit 5
+# python3 scripts/cli.py -cikPath dowjones.txt --skipIndex
+# python3 scripts/cli.py -multi 0 -cik 796343 --skipIndex --debug -limit 1
