@@ -191,42 +191,53 @@ Logging system is not well implemented for multiprocessing!
 ## Example Schema
 
 ```json
-// company collection
+// db.paths.find({})
+{
+  "_id" : ObjectId("5aab0129061b29095ab554d6"),
+  "cik" : "1107194",
+  "form" : "SC TO-I/A",
+  "name" : "CENTILLIUM COMMUNICATIONS INC",
+  "date" : "2004-12-13",
+  "path" : "edgar/data/1107194/0000891618-04-001377.txt",
+  "log" : null
+}
+
+// db.companies.find({})
 {
   "_id" : "796343",
-  "lastUpdate" : ISODate("2018-01-29T16:25:44.560+07:00"),
-  "lastDocument" : "2008-04-04",
-  "NumberOfDocuments" : NumberInt("33")
+  "reports" : [
+    ObjectId("5aab0ab6061b2913036a29e1"),
+    ObjectId("5aab0ab6061b2913036a29e2"),
+    // ...
+  ],
+  "lastDocument" : "2016-01-19",
+  "lastUpdate" : ISODate("2018-03-16T02:10:14.760+01:00"),
+  "NumberOfDocuments" : NumberInt("49"),
+  "EntityRegistrantName" : "ADOBE SYSTEMS INC",
+  "CurrentFiscalYearEndDate" : "--11-27"
 }
 
-// financial position collection
-
+// db.reports.find({})
 {
-  "_id" : ObjectId("5a6e8628061b291969cae892"),
-  "endDate" : ISODate("2008-02-29T07:00:00.000+07:00"),
+  "_id" : ObjectId("5aab0ab6061b2913036a29e1"),
+  "updated" : ISODate("2006-10-11T02:00:00.000+02:00"),
+  "label" : "DeferredUnearnedRevenueCurrent",
+  "instant" : ISODate("2005-12-02T01:00:00.000+01:00"),
+  "company" : "796343",
+  "value" : NumberInt("57839000"),
   "segment" : [
-    "MobileDeviceSolutions"
-  ],
-  "updated" : ISODate("2008-04-04T07:00:00.000+07:00"),
-  "cik" : "796343",
-  "startDate" : ISODate("2007-12-01T07:00:00.000+07:00"),
-  "value" : 15200000,
-  "label" : "MobileDeviceSolutionsRevenue"
+    "Consolidated"
+  ]
 }
 
-// EDGAR Path collection
-
+// db.segments.find({})
 {
-  "_id" : "1107194",
-  "edgar_path" : [
-    {
-      "log" : null,
-      "form" : "SC TO-I/A",
-      "path" : "edgar/data/1107194/0000891618-04-001377.txt",
-      "date" : "2004-12-13"
-    }
-  ],
-  "name" : "CENTILLIUM COMMUNICATIONS INC"
+  "_id" : "Consolidated",
+  "reports" : [
+    ObjectId("5aab0ab6061b2913036a29e1"),
+    ObjectId("5aab0ab6061b2913036a29e2"),
+    // ...
+  ]
 }
 
 
