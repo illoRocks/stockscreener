@@ -69,54 +69,71 @@ db.reports.aggregate(
 
 ```javascript
 var labels = ["Revenues"]
-var ciks = ["796343"]
-var quarter = {
-    q4: [350, 370],
-    q3: [260, 280],
-    q2: [170, 190],
-    q1: [70, 100]
-}
 
-db.reports.aggregate(
-    [
-        { $group:
-                { _id: {
-                        company: "$company",
-                        label: "$label",
-                        segment: "$segment",
-                        instant: "$instant",
-                        startDate: "$startDate",
-                        endDate: "$endDate" },
-                    lastSalesDate: { $last: "$updated" },
-                    entries: { $push: "$$ROOT" } }
-        },
-        { $replaceRoot: { newRoot: { $arrayElemAt: ["$entries", 0] }}},
-        { $match: { company: {"$in": ciks }}},
-        { $match: { label: {"$in": labels }}},
-        { $match: { segment: { "$exists": false }}},
-        { $match: { duration: { 
-            "$gte": quarter.q4[0],
-            "$lte": quarter.q4[1]
-        }}},
-        { $sort: { endDate: 1 }},
-        { $group:
-                { _id: "$company",
-                  reports: { $push: "$$ROOT" }}},
-        { $lookup: {
-               from: "companies",
-               localField: "_id",
-               foreignField: "_id",
-               as: "company"
-             }},
-        { $unwind: "$company" },
-        { $project: {
-            reports: 1,
-            lastUpdate: "$company.lastUpdate",
-            NumberOfDocuments: "$company.NumberOfDocuments",
-            EntityRegistrantName: "$company.EntityRegistrantName",
-            CurrentFiscalYearEndDate: "$company.CurrentFiscalYearEndDate"
-        }}
-    ])
+var pipeline = [
+    // # filter latest
+    {'$group':
+        {'_id': {
+                'company': "$company",
+                'label': "$label",
+                'segment': "$segment",
+                'instant': "$instant",
+                'startDate': "$startDate",
+                'endDate': "$endDate"
+            },
+            'lastSalesDate': { "$last": "$updated" },
+            'entries': { '$push': "$$ROOT" }
+        }
+    },
+    { '$replaceRoot': { 'newRoot': { '$arrayElemAt': ["$entries", 0] } } },
+
+    // # filter labels
+    { '$match': { 'label': { "$in": labels } } },
+
+    // # not use segment values
+    { '$match': { 'segment': { "$exists": false } } },
+
+    // # sort by date
+    { '$sort': { 'endDate': 1 } },
+
+    // # reports as array property
+    {
+        '$group':
+            {
+                '_id': "$company",
+                'reports': {
+                    '$push': {
+                        _id: "$$ROOT._id",
+                        endDate: "$$ROOT.endDate",
+                        value: "$$ROOT.value",
+                        label: "$$ROOT.label",
+                        updated: "$$ROOT.updated",
+                        duration: "$$ROOT.duration",
+                        startDate: "$$ROOT.startDate"
+                    }
+                }
+            }},
+
+    // // # join with compny collection
+    {'$lookup': {
+        'from': "companies",
+        'localField': "_id",
+        'foreignField': "_id",
+        'as': "company"}},
+    { '$unwind': "$company" },
+
+    {'$project': {
+        'reports': 1,
+        'lastUpdate': "$company.lastUpdate",
+        'NumberOfDocuments': "$company.NumberOfDocuments",
+        'EntityRegistrantName': "$company.EntityRegistrantName",
+        'CurrentFiscalYearEndDate': "$company.CurrentFiscalYearEndDate"}},
+
+    // // # write to new collection
+    {'$out': 'transformed'}
+]
+
+db.reports.aggregate(pipeline)
 ```
 
 Result:
