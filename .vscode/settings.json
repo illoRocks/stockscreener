@@ -6,4 +6,6 @@
   },
   "editor.glyphMargin": true,
   "gitlens.codeLens.enabled": false,
+  "[markdown]": { "editor.tabSize": 2 },
+  "python.autoComplete.addBrackets": true
 }

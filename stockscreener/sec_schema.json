@@ -1,6 +1,14 @@
 {
-  "financial_positions": {
+  "labels": {
     "Revenues": [ "Revenues", "SalesRevenueNet" ]
+  },
+  "settings": {
+    "quarter": {
+        "q4": [350, 370],
+        "q3": [260, 280],
+        "q2": [170, 190],
+        "q1": [70, 100]
+    }
   },
   "segments": []
 }

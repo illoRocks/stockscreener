@@ -1,14 +1,18 @@
 #!/usr/bin/env python3.5
-
 import sys
-sys.path.insert(0, '../')
+import os
+
+SCRIPT_DIR = os.path.dirname(os.path.realpath(
+    os.path.join(os.getcwd(), os.path.expanduser(__file__))))
+sys.path.insert(0, os.path.normpath(os.path.join(SCRIPT_DIR, '..')))
+
 
 import argparse
 import logging
-import os
 import configparser
 
-from stockscreener.sec_digger import SecDigger
+# from ... import stockscreener
+from stockscreener import SecDigger, Settings
 from stockscreener.helper import bool_or_int
 
 # setup configuration file
@@ -21,11 +25,14 @@ DATABASE_NAMES = config['DATABASE_NAMES']
 
 WORKING_DIR = os.path.dirname(os.path.abspath(__file__))
 
+# setup configuration file
+config = Settings()
+
 p = argparse.ArgumentParser(description='Download filings from EDGAR.')
 
 p.add_argument('--debug',
                action="store_true",
-               default=LOGGING.getboolean('Logging', False),
+               default=config.get_logging(),
                help='output debug informations'
                )
 
@@ -35,13 +42,15 @@ p.add_argument('--info',
                help='output process informations'
                )
 
+# Database
+
 p.add_argument('-host',
-               default=DATABASE.get('host', 'localhost'),
+               default=config.get_database_host(),
                help='specify the host. default = localhost'
                )
 
 p.add_argument('-port',
-               default=DATABASE.getint('port', 27017),
+               default=config.get_database_port(),
                type=int,
                help='specify the port. default = 27017'
                )
@@ -52,6 +61,8 @@ p.add_argument('--init',
                help='initialize the database. the programm quit after that'
                )
 
+# Identifier
+
 p.add_argument('-cik',
                nargs='+',
                default='796343',
@@ -59,6 +70,7 @@ p.add_argument('-cik',
                )
 
 p.add_argument('-cikPath',
+               default=config.get_cik_path(),
                help='path to textfile with valid central index key. seperated by line breaks'
                )
 
@@ -72,32 +84,40 @@ p.add_argument('-nameRegex',
                help='regex like "^coca cola". one or more'
                )
 
+p.add_argument('--transform_after',
+               action="store_true",
+               default=config.get_transform_after(),
+               help='transform database with schema'
+               )
+
+
+# Other options
+
 p.add_argument('--saveLocal',
                action="store_true",
-               default=PARSER_OPTIONS.getboolean('save', False),
+               default=config.get_saveLocal(),
                help='set this flag if you want to save the files localy'
                )
 
 p.add_argument('-path',
-               default=PARSER_OPTIONS.get(
-                   'local_file_path', '%s/test' % WORKING_DIR),
+               default=config.get_local_file_path(),
                help='specify the path where the files should be stored'
                )
 
 p.add_argument('-saveDb',
-               default=PARSER_OPTIONS.getboolean('save_to_db', True),
+               default=config.get_saveDb(),
                help='if set to False it will be not stored at the database'
                )
 
 p.add_argument('-multi',
                type=bool_or_int,
-               default=PARSER_OPTIONS.getint('multiprocessing', 0),
+               default=config.get_multi(),
                help='Option for multiprocessing. default = False. if True then 4 worker will be used or use your prefered number of worker.'
                )
 
 p.add_argument('-limit',
                type=int,
-               default=PARSER_OPTIONS.getint('number_of_files', 0),
+               default=config.get_number_of_files(),
                help='limit the number of downloads'
                )
 
@@ -106,7 +126,6 @@ p.add_argument('--skipIndex',
                default=False,
                help='skip the index updater'
                )
-
 
 args = p.parse_args()
 
@@ -155,17 +174,21 @@ elif args.cikPath:
 else:
     key['cik'] = args.cik
 
-sd.get_files_from_web(
-    **key,
-    save=args.saveLocal,
-    local_file_path=args.path,
-    save_to_db=args.saveDb,
-    multiprocessing=args.multi,
-    number_of_files=args.limit
-)
+# sd.get_files_from_web(
+#     **key,
+#     save=args.saveLocal,
+#     local_file_path=args.path,
+#     save_to_db=args.saveDb,
+#     multiprocessing=args.multi,
+#     number_of_files=args.limit
+# )
+
+if args.transform_after:
+    print('transform')
+    sd.transform_collection()
 
 # python3 scripts/cli.py --init --debug
 # python3 scripts/cli.py -port 27017 -host localhost -multi 8 -cik 796343 --skipIndex --debug
 # python3 scripts/cli.py -port 27017 -host localhost -multi 8 -nameRegex "coca cola" -limit 5
-# python3 scripts/cli.py -cikPath dowjones.txt --skipIndex
+# python3 scripts/cli.py -cikPath dowjones.txt -limit 1 --skipIndex --transform_after
 # python3 scripts/cli.py -multi 0 -cik 796343 --skipIndex --debug -limit 1

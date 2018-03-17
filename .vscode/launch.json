@@ -4,6 +4,7 @@
   // Weitere Informationen finden Sie unter https://go.microsoft.com/fwlink/?linkid=830387
   "version": "0.2.0",
   "configurations": [
+
     {
       "name": "Python",
       "type": "python",
@@ -18,13 +19,19 @@
         "RedirectOutput"
       ]
     },{
-      "name": "Python main.py",
+      "name": "Python cli",
       "type": "python",
       "request": "launch",
       "stopOnEntry": false,
       "pythonPath": "${config:python.pythonPath}",
-      "program": "${workspaceFolder}/main.py",
+      "program": "${workspaceFolder}/scripts/cli.py",
       "cwd": "${workspaceFolder}",
+      "args": [
+        "-cikPath=dowjones.txt", 
+        "-limit=1",
+        "--skipIndex",
+        "--transform_after"
+      ],
       "env": {},
       "envFile": "${workspaceFolder}/.env",
       "debugOptions": [
