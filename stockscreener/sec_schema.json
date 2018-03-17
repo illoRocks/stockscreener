@@ -1,6 +1,6 @@
 {
   "labels": {
-    "Revenues": [ "Revenues", "SalesRevenueNet" ]
+    "Revenues": [ "Revenues", "SalesRevenueNet", "SalesRevenueGoodsNet" ]
   },
   "settings": {
     "quarter": {
