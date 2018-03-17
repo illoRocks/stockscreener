@@ -1,6 +1,7 @@
 from datetime import datetime
 import logging
 import re
+from argparse import ArgumentTypeError
 
 logger = logging.getLogger(__name__)
 
@@ -46,7 +47,7 @@ def bool_or_int(v):
             int(v)
             return int(v)
         except ValueError:
-            raise argparse.ArgumentTypeError('Boolean value expected.')
+            raise ArgumentTypeError('Boolean value expected.')
 
 
 def parse_date(str):
