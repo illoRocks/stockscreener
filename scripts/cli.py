@@ -147,6 +147,7 @@ sd = SecDigger()
 
 # connect to Database
 sd.connect(
+    init=args.init,
     host=args.host,
     port=args.port,
     name_collection=DATABASE_NAMES.get('collection', 'stockscreener'),
@@ -174,18 +175,19 @@ elif args.cikPath:
 else:
     key['cik'] = args.cik
 
-# sd.get_files_from_web(
-#     **key,
-#     save=args.saveLocal,
-#     local_file_path=args.path,
-#     save_to_db=args.saveDb,
-#     multiprocessing=args.multi,
-#     number_of_files=args.limit
-# )
+sd.get_files_from_web(
+    **key,
+    save=args.saveLocal,
+    local_file_path=args.path,
+    save_to_db=args.saveDb,
+    multiprocessing=args.multi,
+    number_of_files=args.limit
+)
 
 if args.transform_after:
-    print('transform')
     sd.transform_collection()
+
+print('finish')
 
 # python3 scripts/cli.py --init --debug
 # python3 scripts/cli.py -port 27017 -host localhost -multi 8 -cik 796343 --skipIndex --debug
