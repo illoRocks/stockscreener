@@ -54,6 +54,9 @@ class MongoHelper:
                     ('instant',  pymongo.ASCENDING),
                     ('value',  pymongo.ASCENDING),
                     ('duration',  pymongo.ASCENDING)])
+                
+                self.col_companies.create_index([
+                    ('cik', pymongo.ASCENDING)], unique=True)
 
                 self.col_edgar_path.create_index([
                     ('_id', pymongo.ASCENDING),
@@ -83,7 +86,7 @@ class MongoHelper:
         logger.info('transform collection...')
         opt = json.load(
             open(os.path.join(os.path.dirname(__file__), './sec_schema.json')))
-        pprint(opt)
+
         labels = []
         for key in opt['labels']:
             labels.extend(opt['labels'][key])
