@@ -245,25 +245,7 @@ Take account of values for a position with the same `startDate`'s and `endDate`'
 
 ## Usefull queries
 
-### Unwind EDGAR paths
-
-```javascript
-db.edgarPath.aggregate([
-    {'$unwind': '$edgar_path'},
-    {'$match': {'edgar_path.log': {'$eq': null}}},
-    {'$match': {'edgar_path.form': {'$in': ['10-K', '10-Q']}}},
-    {'$match': {'_id': {'$in': ['796343']}}},
-    {'$project':
-        {
-            'url': '$edgar_path.path',
-            'name': 1,
-            'form': '$edgar_path.form',
-            'date': '$edgar_path.date',
-            'cik': '$_id',
-            '_id': 0
-        }}
-])
-```
+see `useful_queries.md`
 
 ### search for companies by name
 

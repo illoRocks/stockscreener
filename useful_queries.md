@@ -1,56 +1,160 @@
 # Useful Queries
 
-Only show the latest values.
+## Only show the latest values
 
-```js
-ciks = ["796343"]
-labels = ["Revenues"]
-db.financialPositions.aggregate([
-    // {"$match": {"cik": {"$in": ciks }}},
-    // {"$match": {"label": {"$in": labels }}},
-    {"$group": {
-        "_id": {
-            "startDate": "$startDate",
-            "endDate": "$endDate",
-            "instant": "$instant",
-            "duration": "$duration",
-            "segment": "$segment",
-            "label": "$label",
-            "cik": "$cik"
+```javascript
+db.reports.aggregate(
+    [
+        { $group:
+                { _id: {
+                        company: "$company",
+                        label: "$label",
+                        segment: "$segment",
+                        instant: "$instant",
+                        startDate: "$startDate",
+                        endDate: "$endDate" },
+                    lastSalesDate: { $last: "$updated" },
+                    entries: { $push: "$$ROOT" } }
         },
-        "latest": {"$max": "$updated"},
-        "doc": {"$push": "$$ROOT"}
-    }},
-    {"$unwind": "$doc"},
-    {"$redact": {"$cond": [
-            {"$eq": ["$doc.updated", "$latest"]},
-            "$$KEEP",
-            "$$PRUNE"
-        ]
-    }},
-    {"$project": {
-        "_id": "$doc._id",
-        "startDate" : "$_id.startDate",
-        "endDate" : "$_id.endDate",
-        "instant" : "$_id.instant",
-        "duration" : "$_id.duration",
-        "label" : "$_id.label",
-        "cik": "$_id.cik",
-        "segment": "$_id.segment",
-        "value": "$doc.value"
-    }},
-])
+        { $replaceRoot: { newRoot: { $arrayElemAt: ["$entries", 0] }}}
+    ])
 ```
 
-Only show yearly reports.
+## Only show consolidated values
 
-(coming soon)
+```javascript
+db.reports.aggregate(
+    [
+        { $match: { segment: { "$exists": false }}}
+    ])
+```
 
-Only show consolidated values.
+## Only show yearly reports
 
-(comming soon)
+```javascript
+var labels = ["Revenues"]
+var ciks = ["796343"]
+var quarter = {
+    q4: [350, 370],
+    q3: [260, 280],
+    q2: [170, 190],
+    q1: [70, 100]
+}
 
-Clear database
+db.reports.aggregate(
+    [
+        { $group:
+                { _id: {
+                        company: "$company",
+                        label: "$label",
+                        segment: "$segment",
+                        instant: "$instant",
+                        startDate: "$startDate",
+                        endDate: "$endDate" },
+                    lastSalesDate: { $last: "$updated" },
+                    entries: { $push: "$$ROOT" } }},
+        { $replaceRoot: { newRoot: { $arrayElemAt: ["$entries", 0] }}},
+        { $match: { company: {"$in": ciks }}},
+        { $match: { label: {"$in": labels }}},
+        { $match: { segment: { "$exists": false }}},
+        { $match: { duration: {
+            "$gte": quarter.q4[0],
+            "$lte": quarter.q4[1]
+        }}},
+        { $sort: { endDate: 1 }}
+    ])
+```
+
+## Show company with filtered financial positions
+
+```javascript
+var labels = ["Revenues"]
+var ciks = ["796343"]
+var quarter = {
+    q4: [350, 370],
+    q3: [260, 280],
+    q2: [170, 190],
+    q1: [70, 100]
+}
+
+db.reports.aggregate(
+    [
+        { $group:
+                { _id: {
+                        company: "$company",
+                        label: "$label",
+                        segment: "$segment",
+                        instant: "$instant",
+                        startDate: "$startDate",
+                        endDate: "$endDate" },
+                    lastSalesDate: { $last: "$updated" },
+                    entries: { $push: "$$ROOT" } }
+        },
+        { $replaceRoot: { newRoot: { $arrayElemAt: ["$entries", 0] }}},
+        { $match: { company: {"$in": ciks }}},
+        { $match: { label: {"$in": labels }}},
+        { $match: { segment: { "$exists": false }}},
+        { $match: { duration: { 
+            "$gte": quarter.q4[0],
+            "$lte": quarter.q4[1]
+        }}},
+        { $sort: { endDate: 1 }},
+        { $group:
+                { _id: "$company",
+                  reports: { $push: "$$ROOT" }}},
+        { $lookup: {
+               from: "companies",
+               localField: "_id",
+               foreignField: "_id",
+               as: "company"
+             }},
+        { $unwind: "$company" },
+        { $project: {
+            reports: 1,
+            lastUpdate: "$company.lastUpdate",
+            NumberOfDocuments: "$company.NumberOfDocuments",
+            EntityRegistrantName: "$company.EntityRegistrantName",
+            CurrentFiscalYearEndDate: "$company.CurrentFiscalYearEndDate"
+        }}
+    ])
+```
+
+Result:
+
+```json
+{
+  "_id" : "796343",
+  "reports" : [
+    {
+      "_id" : ObjectId("5aab0b23061b2912fe6a3534"),
+      "endDate" : ISODate("2007-11-30T01:00:00.000+01:00"),
+      "duration" : NumberInt("363"),
+      "label" : "Revenues",
+      "updated" : ISODate("2010-01-22T01:00:00.000+01:00"),
+      "startDate" : ISODate("2006-12-02T01:00:00.000+01:00"),
+      "company" : "796343",
+      "value" : NumberLong("3157881000")
+    },
+    {
+      "_id" : ObjectId("5aab0b18061b2913006a36da"),
+      "endDate" : ISODate("2008-11-28T01:00:00.000+01:00"),
+      "duration" : NumberInt("363"),
+      "label" : "Revenues",
+      "updated" : ISODate("2011-01-27T01:00:00.000+01:00"),
+      "startDate" : ISODate("2007-12-01T01:00:00.000+01:00"),
+      "company" : "796343",
+      "value" : NumberLong("3579889000")
+    },
+    // ...
+  ],
+  "lastUpdate" : ISODate("2018-03-16T02:10:14.760+01:00"),
+  "NumberOfDocuments" : NumberInt("49"),
+  "EntityRegistrantName" : "ADOBE SYSTEMS INC",
+  "CurrentFiscalYearEndDate" : "--11-27"
+}
+```
+
+## Clear database
 
 ```js
 db.reports.drop()
