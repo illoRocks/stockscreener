@@ -150,7 +150,7 @@ class SecDigger(SecIdx, MongoHelper):
                     quit()
 
                 try:
-                    self.col_financial_positions.bulk_write(res['query_financial_positions'], ordered=False)
+                    self.col_reports.bulk_write(res['query_financial_positions'], ordered=False)
                 except pymongo.errors.BulkWriteError as err:
                     logger.debug(err.details)
                 

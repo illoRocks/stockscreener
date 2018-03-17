@@ -117,7 +117,7 @@ class DbCleaner(MongoHelper):
             {"$unwind": "$arrayofkeyvalue"},
             {"$group": {"cik": cik, "allkeys": {"$addToSet": "$arrayofkeyvalue.k"}}}
         ]
-        result = self.col_financial_positions.aggregate(pipeline)
+        result = self.col_reports.aggregate(pipeline)
         result = list(result)
         if len(result) == 0:
             return None
@@ -158,7 +158,7 @@ class DbCleaner(MongoHelper):
                 }}
             }},
         ]
-        result = self.col_financial_positions.aggregate(pipeline)
+        result = self.col_reports.aggregate(pipeline)
         return list(result)[0]
 
 
@@ -178,7 +178,7 @@ class DbCleaner(MongoHelper):
                     print(map_value)
                     if map_value in keys:
                         t = self.getPosition(cik, map_key, map_value)
-                        self.col_clean_financial_positions.update_one({"_id": cik}, { "$set": t}, True)
+                        # self.col_clean_financial_positions.update_one({"_id": cik}, { "$set": t}, True)
             logger.debug("%s von %s processed. latest: %s" % (i, l, cik))
 
 if __name__ == '__main__':

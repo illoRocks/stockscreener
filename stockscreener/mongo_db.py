@@ -14,7 +14,7 @@ class MongoHelper:
     def __init__(self):
         self.col_edgar_path = {}
         self.col_companies = {}
-        self.col_financial_positions = {}
+        self.col_reports = {}
         self.col_clean_financial_positions = {}
         self.connected = False
         self.status = 'Not connected to database!'
@@ -29,7 +29,7 @@ class MongoHelper:
         name_companies='companies',
         name_reports='reports',
         name_segments='segments',
-        name_transformed='transformed'
+        name_transformed='financial_positions'
     ):
         ''' TODO: mongodb-connection-string and password username '''
 
@@ -39,13 +39,13 @@ class MongoHelper:
 
             self.col_edgar_path = db[name_path]
             self.col_companies = db[name_companies]
-            self.col_financial_positions = db[name_reports]
+            self.col_reports = db[name_reports]
             self.col_segments = db[name_segments]
             self.name_transformed = name_transformed
 
             if init:
                 # TODO weiteren index für schnelle updates anlegen
-                self.col_financial_positions.create_index([
+                self.col_reports.create_index([
                     ('company', pymongo.ASCENDING),
                     ('label', pymongo.ASCENDING),
                     ('updated',  pymongo.ASCENDING),
@@ -115,34 +115,34 @@ class MongoHelper:
             # sort by date
             {'$sort': {'endDate': 1}},
 
-            # reports as array property
-            {'$group':
-                {'_id': "$company",
-                    'reports': {
-                        '$push': {
-                            '_id': "$$ROOT._id",
-                            'endDate': "$$ROOT.endDate",
-                            'value': "$$ROOT.value",
-                            'label': "$$ROOT.label",
-                            'updated': "$$ROOT.updated",
-                            'duration': "$$ROOT.duration",
-                            'startDate': "$$ROOT.startDate"
-                        }}}},
+            # # reports as array property
+            # {'$group':
+            #     {'_id': "$company",
+            #         'reports': {
+            #             '$push': {
+            #                 '_id': "$$ROOT._id",
+            #                 'endDate': "$$ROOT.endDate",
+            #                 'value': "$$ROOT.value",
+            #                 'label': "$$ROOT.label",
+            #                 'updated': "$$ROOT.updated",
+            #                 'duration': "$$ROOT.duration",
+            #                 'startDate': "$$ROOT.startDate"
+            #             }}}},
 
-            # join with compny collection
-            {'$lookup': {
-                'from': "companies",
-                'localField': "_id",
-                'foreignField': "_id",
-                'as': "company"}},
-            {'$unwind': "$company"},
+            # # join with compny collection
+            # {'$lookup': {
+            #     'from': "companies",
+            #     'localField': "_id",
+            #     'foreignField': "_id",
+            #     'as': "company"}},
+            # {'$unwind': "$company"},
 
-            {'$project': {
-                'reports': 1,
-                'lastUpdate': "$company.lastUpdate",
-                'NumberOfDocuments': "$company.NumberOfDocuments",
-                'EntityRegistrantName': "$company.EntityRegistrantName",
-                'CurrentFiscalYearEndDate': "$company.CurrentFiscalYearEndDate"}},
+            # {'$project': {
+            #     'reports': 1,
+            #     'lastUpdate': "$company.lastUpdate",
+            #     'NumberOfDocuments': "$company.NumberOfDocuments",
+            #     'EntityRegistrantName': "$company.EntityRegistrantName",
+            #     'CurrentFiscalYearEndDate': "$company.CurrentFiscalYearEndDate"}},
 
             # write to new collection
             {'$out': self.name_transformed}
@@ -150,7 +150,7 @@ class MongoHelper:
 
         # pprint(pipeline)
 
-        cursor = self.col_financial_positions.aggregate(pipeline)
+        cursor = self.col_reports.aggregate(pipeline)
 
         if len(list(cursor)):
             logger.info('transformation successful')
