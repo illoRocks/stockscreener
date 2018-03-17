@@ -77,12 +77,12 @@ class SecIdx(MongoHelper):
                 'https://www.sec.gov/Archives/edgar/full-index/xbrl.zip']
 
         async def getUrl(url):
-            
+
             async with aiohttp.ClientSession() as session:
                 async with session.get(url) as resp:
                     data = await resp.read()
                     await asyncio.sleep(5)
-                    
+
             with ZipFile(BytesIO(data)) as zfile:
                 with zfile.open('xbrl.idx') as z:
                     for line in z:
@@ -125,8 +125,9 @@ class SecIdx(MongoHelper):
                 logging.info('ignore errors!')
                 self.col_edgar_path.insert_many(bulk, ordered=False)
             except pymongo.errors.BulkWriteError as err:
-                logging.error('BulkWriteError: %s' % err.details)
-                
+                # logging.error('BulkWriteError: %s' % err.details)
+                pass
+
             logging.debug("saved all paths")
 
     def __str__(self):
