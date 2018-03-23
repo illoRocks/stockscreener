@@ -190,6 +190,7 @@ if args.transform_after:
 print('finish')
 
 # python3 scripts/cli.py --init --debug
+# python3 scripts/cli.py -multi 8 --skipIndex -limit 8
 # python3 scripts/cli.py -port 27017 -host localhost -multi 8 -cik 796343 --skipIndex --debug
 # python3 scripts/cli.py -port 27017 -host localhost -multi 8 -nameRegex "coca cola" -limit 5
 # python3 scripts/cli.py -cikPath dowjones.txt -limit 1 --skipIndex --transform_after
