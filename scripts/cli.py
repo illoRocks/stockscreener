@@ -49,19 +49,16 @@ p.add_argument('-port',
                
 p.add_argument('-username',
                default=config.get_database_username(),
-               type=int,
                help='specify username of your database. (default: None)'
                )
 
 p.add_argument('-password',
                default=config.get_database_password(),
-               type=int,
                help='specify username of your database. (default: None)'
                )
 
 p.add_argument('-authSource',
                default=config.get_database_password(),
-               type=int,
                help='specify authSource of your database'
                )
 
