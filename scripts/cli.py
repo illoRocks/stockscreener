@@ -15,14 +15,6 @@ import configparser
 from stockscreener import SecDigger, Settings
 from stockscreener.helper import bool_or_int
 
-# setup configuration file
-config = configparser.ConfigParser()
-config.read(['config.ini', 'stockscreener.ini'])
-DATABASE = config['DATABASE']
-LOGGING = config['LOGGING']
-PARSER_OPTIONS = config['PARSER_OPTIONS']
-DATABASE_NAMES = config['DATABASE_NAMES']
-
 WORKING_DIR = os.path.dirname(os.path.abspath(__file__))
 
 # setup configuration file
@@ -53,6 +45,24 @@ p.add_argument('-port',
                default=config.get_database_port(),
                type=int,
                help='specify the port. default = 27017'
+               )
+               
+p.add_argument('-username',
+               default=config.get_database_username(),
+               type=int,
+               help='specify username of your database. (default: None)'
+               )
+
+p.add_argument('-password',
+               default=config.get_database_password(),
+               type=int,
+               help='specify username of your database. (default: None)'
+               )
+
+p.add_argument('-authSource',
+               default=config.get_database_password(),
+               type=int,
+               help='specify authSource of your database'
                )
 
 p.add_argument('--init',
@@ -135,7 +145,7 @@ if args.debug:
 elif args.info:
     level = 20
 else:
-    level = LOGGING.getint('level', 30)
+    level = config.get_logging_level()
 
 logging.basicConfig(
     level=level,
@@ -150,10 +160,13 @@ sd.connect(
     init=args.init,
     host=args.host,
     port=args.port,
-    name_collection=DATABASE_NAMES.get('collection', 'stockscreener'),
-    name_path=DATABASE_NAMES.get('path', 'path'),
-    name_companies=DATABASE_NAMES.get('companies', 'companies'),
-    name_reports=DATABASE_NAMES.get('reports', 'reports')
+    username=args.username,
+    password=args.password,
+    authSource=args.authSource,
+    name_collection=config.get_db_name_collection(),
+    name_path=config.get_db_name_path(),
+    name_companies=config.get_db_name_companies(),
+    name_reports=config.get_db_name_reports()
 )
 
 # fill database with paths

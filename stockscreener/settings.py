@@ -35,6 +35,15 @@ class Settings():
     def get_database_port(self):
         return self.get_setting('DATABASE', int, 'port', 27017)
 
+    def get_database_username(self):
+        return self.get_setting('DATABASE', str, 'username', None)
+
+    def get_database_password(self):
+        return self.get_setting('DATABASE', str, 'password', None)
+
+    def get_database_authSource(self):
+        return self.get_setting('DATABASE', str, 'authSource', None)
+
     # logging options
     def get_logging(self):
         return self.get_setting('LOGGING', bool, 'Logging', False)

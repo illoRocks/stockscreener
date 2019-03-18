@@ -24,6 +24,9 @@ class MongoHelper:
         init=True,
         host='localhost',
         port=27017,
+        username=None,
+        password=None,
+        authSource=None,
         name_collection='stockscreener',
         name_path='paths',
         name_companies='companies',
@@ -34,7 +37,15 @@ class MongoHelper:
         ''' TODO: mongodb-connection-string and password username '''
 
         try:
-            conn = pymongo.MongoClient(host, port)
+            credentials = {}
+            if username is not None:
+                credentials['username'] = username
+            if password is not None:
+                credentials['password'] = password
+            if authSource is not None:
+                credentials['authSource'] = authSource
+                
+            conn = pymongo.MongoClient(host, port, **credentials)
             db = conn[name_collection]
 
             self.col_edgar_path = db[name_path]
