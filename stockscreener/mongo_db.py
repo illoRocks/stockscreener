@@ -49,8 +49,6 @@ class MongoHelper:
                 
         try:
             conn = pymongo.MongoClient(**credentials)
-
-            conn.
             db = conn[name_collection]
 
             self.col_edgar_path = db[name_path]
