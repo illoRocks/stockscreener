@@ -58,7 +58,7 @@ p.add_argument('-password',
                )
 
 p.add_argument('-authSource',
-               default=config.get_database_password(),
+               default=config.get_database_authSource(),
                help='specify authSource of your database'
                )
 

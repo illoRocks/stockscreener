@@ -36,16 +36,21 @@ class MongoHelper:
     ):
         ''' TODO: mongodb-connection-string and password username '''
 
-        try:
-            credentials = {}
-            if username is not None:
-                credentials['username'] = username
-            if password is not None:
-                credentials['password'] = password
-            if authSource is not None:
-                credentials['authSource'] = authSource
+        credentials = {
+            'host'=host,
+            'port'=port
+        }
+        if username is not None:
+            credentials['username'] = username
+        if password is not None:
+            credentials['password'] = password
+        if authSource is not None:
+            credentials['authSource'] = authSource
                 
-            conn = pymongo.MongoClient(host, port, **credentials)
+        try:
+            conn = pymongo.MongoClient(**credentials)
+
+            conn.
             db = conn[name_collection]
 
             self.col_edgar_path = db[name_path]
@@ -83,6 +88,11 @@ class MongoHelper:
 
         except pymongo.errors.ServerSelectionTimeoutError as err:
             logger.error("Could not connect to MongoDB: %s" % err)
+            quit()
+        
+        except pymongo.errors.OperationFailure as err:
+            logger.error("Could not create indices: %s" % err)
+            logger.error("Check your credentials: %s" % credentials)
             quit()
 
         logger.info('database connection successful')
