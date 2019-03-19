@@ -37,8 +37,8 @@ class MongoHelper:
         ''' TODO: mongodb-connection-string and password username '''
 
         credentials = {
-            'host'=host,
-            'port'=port
+            'host': host,
+            'port': port
         }
         if username is not None:
             credentials['username'] = username
