@@ -11,14 +11,14 @@ import argparse
 import logging
 import configparser
 
-# from ... import stockscreener
 from stockscreener import SecDigger, Settings
 from stockscreener.helper import bool_or_int
 
 WORKING_DIR = os.path.dirname(os.path.abspath(__file__))
 
 # setup configuration file
-config = Settings()
+config_file_locations = [os.path.expanduser("~") + '/.stockscreener.ini','config.ini', 'stockscreener.ini']
+config = Settings(file_name=config_file_locations)
 
 p = argparse.ArgumentParser(description='Download filings from EDGAR.')
 
@@ -66,6 +66,22 @@ p.add_argument('--init',
                action="store_true",
                default=False,
                help='initialize the database. the programm quit after that'
+               )
+
+               
+p.add_argument('-ssh_username',
+               default=config.get_ssh_username(),
+               help='specify username of your database. (default: None)'
+               )
+                              
+p.add_argument('-ssh_password',
+               default=config.get_ssh_password(),
+               help='specify username of your database. (default: None)'
+               )
+                              
+p.add_argument('-ssh_address',
+               default=config.get_ssh_address(),
+               help='specify username of your database. (default: None)'
                )
 
 # Identifier
@@ -159,6 +175,9 @@ sd.connect(
     port=args.port,
     username=args.username,
     password=args.password,
+    ssh_address=args.ssh_address,
+    ssh_username=args.ssh_username,
+    ssh_password=args.ssh_password,
     authSource=args.authSource,
     name_collection=config.get_db_name_collection(),
     name_path=config.get_db_name_path(),
