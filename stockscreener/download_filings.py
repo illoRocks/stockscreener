@@ -109,9 +109,6 @@ class XbrlCrawler:
             with open(file_path + '/' + filename, 'w') as file:
                 file.write('%s\n' % txt)
 
-    # def parseLocalFile(local_path):
-    #     self.parse({}, local_path=local_path)
-
     def parse(self, local_path=None):
         """create SAX-Parser and parse the xbrl"""
 
@@ -151,9 +148,8 @@ class XbrlCrawler:
                 file is stored under: %s
                 please check the failure in the xml and fix this bug
                 error: %s
-                ''' % ('errors/' + self.cik + '/' + self.accession + '/' + filename, err))
+                ''' % ('logs/errors/' + self.cik + '/' + self.accession + '/' + filename, err))
             self.save_documents("logs/errors")
-            quit()
 
         root = it.root
         context = defaultdict(dict)

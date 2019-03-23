@@ -6,9 +6,11 @@ WORKING_DIR = path.dirname(path.abspath(__file__))
 class Settings():
     """manage mongoDB for SecDigger"""
 
-    def __init__(self, file_name=['config.ini', 'stockscreener.ini']):
+    def __init__(self, file_name):
+        print(file_name)
         self.config = ConfigParser()
         self.config.read(file_name)
+
 
     def get_setting(self, section, val_type, my_setting, default):
         try:
@@ -43,6 +45,16 @@ class Settings():
 
     def get_database_authSource(self):
         return self.get_setting('DATABASE', str, 'authSource', None)
+
+    # ssh tunnel
+    def get_ssh_address(self):
+        return self.get_setting('SSH_TUNNEL', str, 'address', None)
+
+    def get_ssh_username(self):
+        return self.get_setting('SSH_TUNNEL', str, 'username', None)
+
+    def get_ssh_password(self):
+        return self.get_setting('SSH_TUNNEL', str, 'password', None)
 
     # logging options
     def get_logging(self):

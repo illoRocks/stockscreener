@@ -19,7 +19,8 @@ LONG_DESCRIPTION = open("README.md", 'r').read()
 REQUIREMENTS = [
     'requests',
     'pymongo',
-    'aiohttp'
+    'aiohttp',
+    'sshtunnel'
 ]
 
 setup(

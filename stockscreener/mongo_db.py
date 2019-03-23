@@ -1,7 +1,9 @@
-import pymongo
+from pymongo import MongoClient, ASCENDING
+from pymongo.errors import ServerSelectionTimeoutError, OperationFailure
 import json
 import logging
 from pprint import pprint
+from sshtunnel import SSHTunnelForwarder
 import os
 
 
@@ -27,6 +29,9 @@ class MongoHelper:
         username=None,
         password=None,
         authSource=None,
+        ssh_address=None,
+        ssh_username=None,
+        ssh_password=None,
         name_collection='stockscreener',
         name_path='paths',
         name_companies='companies',
@@ -37,61 +42,71 @@ class MongoHelper:
         ''' TODO: mongodb-connection-string and password username '''
 
         credentials = {
-            'host': host,
-            'port': port
+            'host': host
         }
+
+        if ssh_address is not None:
+            logger.info("Use ssh tunnel: %s" % ssh_address)
+            server = SSHTunnelForwarder(
+                ssh_address_or_host=ssh_address,
+                ssh_username=ssh_username,
+                ssh_password=ssh_password,
+                remote_bind_address=(host, port)
+            )
+            server.start()
+            credentials['port'] = server.local_bind_port
+        else:
+            credentials['port'] = port
+
         if username is not None:
             credentials['username'] = username
         if password is not None:
             credentials['password'] = password
         if authSource is not None:
             credentials['authSource'] = authSource
-                
+
         try:
-            conn = pymongo.MongoClient(**credentials)
-            db = conn[name_collection]
-
-            self.col_edgar_path = db[name_path]
-            self.col_companies = db[name_companies]
-            self.col_reports = db[name_reports]
-            self.col_segments = db[name_segments]
-            self.name_transformed = name_transformed
-
-            if init:
-                # TODO weiteren index für schnelle updates anlegen
-                self.col_reports.create_index([
-                    ('company', pymongo.ASCENDING),
-                    ('label', pymongo.ASCENDING),
-                    ('updated',  pymongo.ASCENDING),
-                    ('startDate',  pymongo.ASCENDING),
-                    ('endDate',  pymongo.ASCENDING),
-                    ('instant',  pymongo.ASCENDING),
-                    ('value',  pymongo.ASCENDING),
-                    ('duration',  pymongo.ASCENDING)])
-                
-                self.col_companies.create_index([
-                    ('cik', pymongo.ASCENDING)], unique=True)
-
-                self.col_edgar_path.create_index([
-                    ('_id', pymongo.ASCENDING),
-                    ('path', pymongo.ASCENDING)], unique=True)
-
-                self.col_edgar_path.create_index([
-                    ('path', pymongo.ASCENDING)], unique=True)
-
-            # self.col_segments.create_index([
-            #     ('label', pymongo.ASCENDING)], unique=True)
-
-            self.connected = True
-
-        except pymongo.errors.ServerSelectionTimeoutError as err:
+            conn = MongoClient(**credentials)
+        except ServerSelectionTimeoutError as err:
             logger.error("Could not connect to MongoDB: %s" % err)
             quit()
+
+        db = conn[name_collection]
+        self.col_edgar_path = db[name_path]
+        self.col_companies = db[name_companies]
+        self.col_reports = db[name_reports]
+        self.col_segments = db[name_segments]
+        self.name_transformed = name_transformed
+
+        if init:
+            try:
+                # TODO weiteren index für schnelle updates anlegen
+                self.col_reports.create_index([
+                    ('company', ASCENDING),
+                    ('label', ASCENDING),
+                    ('updated',  ASCENDING),
+                    ('startDate',  ASCENDING),
+                    ('endDate',  ASCENDING),
+                    ('instant',  ASCENDING),
+                    ('value',  ASCENDING),
+                    ('duration',  ASCENDING)])
+                
+                self.col_companies.create_index([
+                    ('cik', ASCENDING)], unique=True)
+
+                self.col_edgar_path.create_index([
+                    ('_id', ASCENDING),
+                    ('path', ASCENDING)], unique=True)
+
+                self.col_edgar_path.create_index([
+                    ('path', ASCENDING)], unique=True)
+
+            except OperationFailure as err:
+                logger.error("Could not create indices: %s" % err)
+                logger.error("Check your credentials: %s" % credentials)
+                quit()
         
-        except pymongo.errors.OperationFailure as err:
-            logger.error("Could not create indices: %s" % err)
-            logger.error("Check your credentials: %s" % credentials)
-            quit()
+        self.connected = True
 
         logger.info('database connection successful')
 
