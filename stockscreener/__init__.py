@@ -1,11 +1,6 @@
-try:
-    from .sec_digger import SecDigger
-    from .settings import Settings
-    from .mongo_db import MongoHelper
-except (ImportError, SystemError):
-    from sec_digger import SecDigger
-    from settings import Settings
-    from mongo_db import MongoHelper
+
+from .sec_digger import SecDigger
+from .database.db_client import DBClient
 
 
 __version__ = '1.0.1'

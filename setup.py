@@ -20,7 +20,8 @@ REQUIREMENTS = [
     'requests',
     'pymongo',
     'aiohttp',
-    'sshtunnel'
+    'sshtunnel',
+    'ConfigArgParse'
 ]
 
 setup(
