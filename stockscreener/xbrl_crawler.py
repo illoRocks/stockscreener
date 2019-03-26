@@ -1,23 +1,20 @@
 #!/usr/bin/env python3.6
 
+from stockscreener.helper import parse_date, num
 import xml.etree.ElementTree as ET
 from _collections import defaultdict
 from datetime import datetime
 from io import StringIO
-from os import makedirs, path
+from os import makedirs, path, listdir
 from re import search, sub, findall, IGNORECASE, compile
 import time
 import requests
 import logging
 import pymongo
 from bson.objectid import ObjectId
+from typing import Tuple
 
 logger = logging.getLogger(__name__)
-
-try:
-    from .helper import parse_date, num
-except (ImportError, SystemError):
-    from helper import parse_date, num
 
 
 ''' TODO: rename '''
@@ -27,19 +24,34 @@ pattern = compile("^(-[0-9]+)|([0-9]+)$")
 class XbrlCrawler:
     """load filings from SEC and save them to objects"""
 
-    def __init__(self, url, cik=None, date=None):
-        self.url = 'https://www.sec.gov/Archives/%s' % url.replace(
-            'https://www.sec.gov/Archives/', '')
-        self.cik = cik if cik is not None else url.split('/')[-2]
-        self.date = date
-        self.accession = url.split('/')[-1][:-4]
-        self.files = {}
+    def __init__(self, url=None, cik=None, date=None):
 
-    def download(self):
+        if url:
+            self.url_or_path = 'https://www.sec.gov/Archives/%s' % url.replace(
+                'https://www.sec.gov/Archives/', '')
+            self.cik = cik or url.split('/')[-2]
+            self.date = date
+            self.accession = url.split('/')[-1][:-4]
+
+        self.files = {}
+        self.file_from_local = False
+
+    def read_files_local(self, dir, cik, accession):
+        """read folder with SEC files"""
+        self.file_from_local = True
+        self.cik = cik
+        self.accession = accession
+        self.url_or_path = path.join(dir, cik, accession)
+        logger.info("read files in %s" % path.realpath(self.url_or_path))
+        for f in listdir(self.url_or_path):
+            with open(path.join(self.url_or_path, f), 'r') as file:
+                self.files[f] = file.read()
+
+    def download(self) -> None or str:
         """download and save sec files"""
 
         try:
-            resp = requests.get(self.url, stream=True)
+            resp = requests.get(self.url_or_path, stream=True)
 
             header = True
             start_xml = False
@@ -85,16 +97,23 @@ class XbrlCrawler:
             '(<link:footnoteLink((.|\n)*?)footnoteLink>)', '', self.files[filename])
         linebreak = findall('</((.|\n)*?)>', self.files[filename])
         for b in linebreak:
-            cleaned = sub('\n', '', b[0])
-            self.files[filename] = sub(b[0], cleaned, self.files[filename])
+            cleaned = b[0].replace('\n', '')
+            self.files[filename] = self.files[filename].replace(b[0], cleaned)
 
-        self.files[filename] = sub('&', '', self.files[filename])
-        self.files[filename] = sub('<\n', '<', self.files[filename])
-        self.files[filename] = sub(
-            '(us.{1,4}gaap:)', 'us-gaap:', self.files[filename])
+        self.files[filename] = self.files[filename].replace('&', '')
+        self.files[filename] = self.files[filename].replace('<\n', '<')
+        self.files[filename] = self.files[filename].replace(
+            '(us.{1,4}gaap:)', 'us-gaap:')
 
     def save_documents(self, target_path):
+        logger.info("save_documents is depreciated. use `save_documents_local`")
+        self.save_documents_local(target_path)
+
+    def save_documents_local(self, target_path):
         """save whole documents in path"""
+
+        if self.file_from_local:
+            return None
 
         file_path = path.join(target_path, self.cik, self.accession)
 
@@ -109,16 +128,15 @@ class XbrlCrawler:
             with open(file_path + '/' + filename, 'w') as file:
                 file.write('%s\n' % txt)
 
-    def parse(self, local_path=None):
-        """create SAX-Parser and parse the xbrl"""
+    def parse(self, local_path=None) -> dict or None:
+        """parse the xbrl"""
 
         if local_path == None:
-            t = time.time()
             xbrl = False
             for f in self.files:
-                if not search('(header.txt|FilingSummary|\.xsd|defnref|(pre|lab|def|cal|ref|R[0-9]{1,3})\.xml)', f):
+                if not search('(header.txt|FilingSummary|\.xsd|\.htm|defnref|(pre|lab|def|cal|ref|R[0-9]{1,3})\.xml)', f):
                     xbrl = True
-                    logger.debug('parse: %s in %s' % (f, self.url))
+                    logger.debug('parse: %s in %s' % (f, self.url_or_path))
                     filename = f
                     self.clean_file(filename=filename)
                     break
@@ -126,7 +144,7 @@ class XbrlCrawler:
             if not xbrl:
                 f = ''.join('\t' + f + '\n' for f in self.files)
                 logger.warning(
-                    'no xbrl found. please change criterion: \n%s\t%s' % (f, self.url))
+                    'no xbrl found. please change criterion: \n%s\t%s' % (f, self.url_or_path))
                 return 'no xbrl found!'
 
             it = ET.iterparse(StringIO(self.files[filename]))
@@ -149,7 +167,8 @@ class XbrlCrawler:
                 please check the failure in the xml and fix this bug
                 error: %s
                 ''' % ('logs/errors/' + self.cik + '/' + self.accession + '/' + filename, err))
-            self.save_documents("logs/errors")
+            self.save_documents_local("logs/errors")
+            return None
 
         root = it.root
         context = defaultdict(dict)
@@ -212,13 +231,13 @@ class XbrlCrawler:
             if 'segment' in context[ref]:
                 query_segment.extend(
                     [pymongo.UpdateOne(
-                        {'_id': l}, 
+                        {'_id': l},
                         {'$addToSet': {'reports': {'$each': ref_ids}}},
                         upsert=True)
                      for l in context[ref]['segment']])
 
         if query_reports is None or len(query_reports) == 0:
-            return "error no items in %s" % self.url
+            return "error no items in %s" % self.url_or_path
 
         query_company = {'filter': {'cik': self.cik},
                          'update': {'$set': {'lastDocument': self.date,
@@ -235,7 +254,7 @@ class XbrlCrawler:
             'query_financial_positions': query_reports,
             'query_segment': query_segment,
             'cik': self.cik,
-            'edgar_path': self.url.replace('https://www.sec.gov/Archives/', '')
+            'edgar_path': self.url_or_path.replace('https://www.sec.gov/Archives/', '')
         }
 
     def __str__(self):
@@ -246,7 +265,7 @@ class XbrlCrawler:
                         date = %s
                         accession = %s
                         files = %s
-            ''' % (__class__.__name__, self.url, self.cik, self.date, self.accession, self.files)
+            ''' % (__class__.__name__, self.url_or_path, self.cik, self.date, self.accession, self.files)
 
 
 if __name__ == '__main__':
@@ -256,8 +275,9 @@ if __name__ == '__main__':
         format='%(levelname)s/%(module)s/%(funcName)s %(message)s'
     )
 
-    crawler = XbrlCrawler(
-        'https://www.sec.gov/Archives/edgar/data/796343/0001104659-07-072546.txt')
+    crawler = XbrlCrawler()
+    # crawler = XbrlCrawler(
+    # 'https://www.sec.gov/Archives/edgar/data/796343/0001104659-07-072546.txt')
     # crawler.download()
 
     crawler.parse(

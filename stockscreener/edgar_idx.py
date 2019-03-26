@@ -20,17 +20,14 @@ import threading
 import asyncio
 import aiohttp
 
-try:
-    from .mongo_db import MongoHelper
-except (ImportError, SystemError):
-    from mongo_db import MongoHelper
+from stockscreener.database.db_client import DBClient
 
 
 import logging
 logger = logging.getLogger(__name__)
 
 
-class SecIdx(MongoHelper):
+class SecIdx(DBClient):
     def __init__(self):
         super().__init__()
         self.idx = []
@@ -103,7 +100,7 @@ class SecIdx(MongoHelper):
         """save idx to mongodb"""
 
         if not self.connected:
-            logger.error(self.status)
+            logger.error("not connected to DB!")
             quit()
 
         elif len(self.idx) == 0:
@@ -123,8 +120,8 @@ class SecIdx(MongoHelper):
             logger.info("write to database...")
             try:
                 logging.info('ignore errors!')
-                self.col_edgar_path.insert_many(bulk, ordered=False)
-            except pymongo.errors.BulkWriteError as err:
+                self.db_save_edgar_path(bulk)
+            except pymongo.errors.BulkWriteError:
                 # logging.error('BulkWriteError: %s' % err.details)
                 pass
 

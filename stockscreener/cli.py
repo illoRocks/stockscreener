@@ -1,7 +1,7 @@
 #!/usr/bin/env python3.5
 
 """
-python3 -m stockscreener.cli --config config.ini -init
+python3 -m stockscreener --config config.ini -init
 
 """
 
@@ -12,8 +12,8 @@ import sys
 import os
 from configparser import ConfigParser
 
-from .helper import bool_or_int
-from .sec_digger import SecDigger
+from stockscreener.helper import bool_or_int
+from stockscreener.sec_digger import SecDigger
 
 # SCRIPT_DIR = os.path.dirname(os.path.realpath(
 #     os.path.join(os.getcwd(), os.path.expanduser(__file__))))
@@ -98,7 +98,7 @@ p.add_argument('-name', nargs='+',
 p.add_argument('-nameRegex', nargs='+',
                help='regex like "^coca cola". one or more')
 
-p.add_argument('--transform_after', action="store_true",
+p.add_argument('--transform_after', action="store_false",
                help='transform database with schema')
 
 
@@ -110,8 +110,8 @@ p.add_argument('--save_local', action="store_true",
 p.add_argument('--local_file_path',
                help='specify the path where the files should be stored')
 
-p.add_argument('--save_db',
-               help='if set to False it will be not stored at the database')
+p.add_argument('--save_not_db', action="store_false",
+               help='if set it will be not stored at the database')
 
 p.add_argument('--nthreads', type=bool_or_int,
                help='Option for multiprocessing. default = False. if True then 4 worker will be used or use your prefered number of worker.')
@@ -160,8 +160,8 @@ def main():
         name_companies=options.db_companies,
         name_reports=options.db_reports
     )
-    # fill database with paths
 
+    # fill database with paths
     if not options.skipIndex:
         logger.info("init or update edgar paths")
         sd.download_idx(init=options.init)
@@ -170,29 +170,29 @@ def main():
     if options.init:
         quit()
 
-    sys.exit(0)
     # download filings
     key = {}
     if options.name:
         key['name'] = options.name
     elif options.nameRegex:
         key['name_regex'] = options.nameRegex
-    elif options.cikPath:
-        key['cik_path'] = options.cikPath
+    elif options.cik_path:
+        key['cik_path'] = options.cik_path
     else:
         key['cik'] = options.cik
 
     sd.get_files_from_web(
         **key,
-        save=options.saveLocal,
-        local_file_path=options.path,
-        save_to_db=options.saveDb,
-        multiprocessing=options.multi,
+        save=options.save_local,
+        local_file_path=options.local_file_path,
+        save_to_db=options.save_not_db,
+        multiprocessing=options.nthreads,
         number_of_files=options.limit
     )
 
-    if options.transform_after:
-        sd.transform_collection()
+
+    # if options.transform_after:
+    #     sd.transform_collection()
 
     print('finish')
 

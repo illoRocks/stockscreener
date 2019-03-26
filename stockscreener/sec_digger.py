@@ -7,20 +7,15 @@ import time
 from multiprocessing import Pool
 import logging
 import re
-import pymongo
 import sys
 import os.path
+import pprint
 
-try:
-    from .helper import ctime
-    from .edgar_idx import SecIdx
-    from .mongo_db import MongoHelper
-    from .download_filings import XbrlCrawler
-except (ImportError, SystemError):
-    from helper import ctime
-    from edgar_idx import SecIdx
-    from mongo_db import MongoHelper
-    from download_filings import XbrlCrawler
+
+from stockscreener.helper import ctime
+from stockscreener.edgar_idx import SecIdx
+from stockscreener.database.db_client import DBClient
+from stockscreener.xbrl_crawler import XbrlCrawler
 
 
 logger = logging.getLogger(__name__)
@@ -29,7 +24,7 @@ logger = logging.getLogger(__name__)
 logging.getLogger("requests").setLevel(logging.WARNING)
 
 
-class SecDigger(SecIdx, MongoHelper):
+class SecDigger(SecIdx, DBClient):
     """Handler for SEC-filings"""
 
     def __init__(self):
@@ -42,16 +37,14 @@ class SecDigger(SecIdx, MongoHelper):
         return SecDigger.mp_ffw(**kwargs)
 
     @staticmethod
-    def mp_ffw(cik, date, path, save=False, local_file_path='temp', save_to_db=True, **kwargs):
+    def mp_ffw(cik, date, path, save=False, local_file_path='temp',
+               save_to_db=True, **kwargs):
         """create Download-Handler"""
 
         t = {'start': time.time()}
         df = XbrlCrawler(url=path, cik=cik, date=date)
-        info = df.download()
+        df.download()
         t['download'] = time.time()
-
-        if type(info) == str:
-            return info
 
         if save:
             df.save_documents(local_file_path)
@@ -91,42 +84,25 @@ class SecDigger(SecIdx, MongoHelper):
             ''' % (multiprocessing, name, ticker, cik, cik_path, save, save_to_db, number_of_files, local_file_path))
 
         if not self.connected:
-            logger.error(self.status)
+            logger.error("database is not connected")
             quit()
 
         start_time = time.time()
 
-        query = {}
-        query['log'] = {'$eq': None}
-        query['form'] = {'$in': ['10-K', '10-Q']}
-
-        # add some other criterion
-        if cik:
-            query['cik'] = {'$in': [cik] if type(cik) == str else cik}
-        elif ticker:
-            query['ticker'] = {'$in': [ticker] if type(ticker) == str else ticker}
-        elif name:
-            query['name'] = {'$in': [name] if type(name) == str else name}
-        elif name_regex:
-            regx = [re.compile(r, re.IGNORECASE) for r in name_regex]
-            query['name'] = {'$in': regx}
-        elif cik_path:
+        if cik_path:
             with open(cik_path, 'r') as file:
-                ciks = [i.replace("\n", "") for i in file]
-            query['cik'] = {'$in': ciks}
-        else:
-            logger.error("no company identifier")
-            quit()
+                cik = [i.replace("\n", "") for i in file]
 
-        logger.debug('path query: %s' % query)
         # execute download for each edgar_path
+        docs = self.db_get_edgar_path(name=name, name_regex=name_regex,
+                                      ticker=ticker, cik=cik, limit=number_of_files)
         tasks = []
-        for doc in self.col_edgar_path.find(query).limit(number_of_files):
+        for doc in docs:
             doc['save'] = save
             doc['local_file_path'] = local_file_path
             doc['save_to_db'] = save_to_db
             tasks.append(doc)
-            
+
         if len(tasks) == 0:
             logger.warning('no more filings!')
             quit()
@@ -134,39 +110,28 @@ class SecDigger(SecIdx, MongoHelper):
         def store_result(res):
             ''' store files in database '''
 
-            if type(res) == str:
-                if 'error' in res:
-                    self.col_edgar_path.update({'path': res['edgar_path']},
-                                               {'$set': {'log': 'error'}}, False, True)
+            if type(res) == str or res is None:
+                if 'error' in res or res is None:
+                    self.db_update_edgar_path(filter={'path': res['edgar_path']},
+                                              update={'$set': {'log': 'error'}})
             else:
-                try:
-                    self.col_companies.update_one(**res['query_company'])
-                except TypeError:
-                    logger.error(res['query_company'])
-                    quit()
-                except pymongo.errors.WriteError as err:
-                    logger.error(res['query_company'])
-                    logger.error('Please check the query: WriteError %s' % err)
-                    quit()
+                self.db_update_companie(filter=res['query_company']['filter'],
+                                        update=res['query_company']['update'])
 
-                try:
-                    self.col_reports.bulk_write(res['query_financial_positions'], ordered=False)
-                except pymongo.errors.BulkWriteError as err:
-                    logger.debug(err.details)
-                
+                self.db_save_report_positions(res['query_financial_positions'])
+
                 if len(res['query_segment']) > 0:
-                    self.col_segments.bulk_write(res['query_segment'], ordered=False)
+                    self.db_save_segments(res['query_segment'])
 
-                
-                self.col_edgar_path.update({'path': res['edgar_path']},
-                                           {'$set': {'log': 'stored'}}, False, True)
+                self.db_update_edgar_path(filter={'path': res['edgar_path']},
+                                          update={'$set': {'log': 'stored'}})
 
             self.session['processed'] += 1
 
-        if not multiprocessing:
+        if not multiprocessing or multiprocessing <= 1:
             logger.debug('use synchronious mode')
             for row in tasks:
-                data, t = self.mp_ffw(**row)
+                data, _ = self.mp_ffw(**row)
                 if data is not None:
                     store_result(data)
                     logger.info("elapsed: %s min\tprocessed: %s Stücke | latest: %s" %
@@ -180,10 +145,10 @@ class SecDigger(SecIdx, MongoHelper):
                     SecDigger.calculatestar, tasks)
 
                 logger.info('Unordered results using pool.imap_unordered():')
-                for data, t in imap_unordered_it:
+                for data, _ in imap_unordered_it:
                     store_result(data)
                     logger.info("elapsed: %s min\tprocessed: %s pieces\tlatest: %s" %
-                    (round((time.time() - start_time) / 60), self.session['processed'], data['edgar_path']))
+                                (round((time.time() - start_time) / 60), self.session['processed'], data['edgar_path']))
 
     def __str__(self):
         """print all about this session"""
@@ -194,7 +159,7 @@ class SecDigger(SecIdx, MongoHelper):
 
 
 if __name__ == '__main__':
-    
+
     logging.basicConfig(level=logging.DEBUG)
 
     # use SecDigger
@@ -203,13 +168,13 @@ if __name__ == '__main__':
     # connect to Database
     sd.connect()
 
-    # 
+    #
     # sd.get_files_from_web(cik="104169")
 
     # insert reports
     # sd.col_financial_positions.insert_many([
     #     {'startDate': datetime.datetime(2003, 11, 29, 0, 1), 'cik': '123', 'label': 'WeightedAverageNumberDilutedSharesOutstanding', 'updated': datetime.datetime(2006, 2, 8, 0, 0), 'value': 495626000, 'endDate': datetime.datetime(2004, 12, 3, 0, 0)},
-    #     {'startDate': datetime.datetime(2003, 11, 29, 0, 2), 'cik': '123 f', 'label': 'OperatingExpenses', 'updated': datetime.datetime(2006, 2, 8, 0, 0), 'value': 970409000, 'endDate': datetime.datetime(2004, 12, 3, 0, 0)}, 
+    #     {'startDate': datetime.datetime(2003, 11, 29, 0, 2), 'cik': '123 f', 'label': 'OperatingExpenses', 'updated': datetime.datetime(2006, 2, 8, 0, 0), 'value': 970409000, 'endDate': datetime.datetime(2004, 12, 3, 0, 0)},
     #     {'startDate': datetime.datetime(2003, 11, 29, 0, 2), 'cik': '123', 'label': 'IssuanceCompensatoryStockAdditionalPaidCapital', 'updated': datetime.datetime(2006, 2, 8, 0, 0), 'value': 225000, 'endDate': datetime.datetime(2004, 12, 3, 0, 0)}
     #     ], ordered=False)
 
@@ -230,7 +195,6 @@ if __name__ == '__main__':
             for k in u3:
                 if i == j or i == k or j == k:
                     eq.append(i)
-    
 
     print('result: ', len(eq))
 

@@ -1,16 +1,42 @@
 from pymongo import MongoClient, ASCENDING
-from pymongo.errors import ServerSelectionTimeoutError, OperationFailure
+from pymongo.errors import BulkWriteError, WriteError, ServerSelectionTimeoutError, OperationFailure
 import json
 import logging
 from pprint import pprint
 from sshtunnel import SSHTunnelForwarder
 import os
+import sys
+import re
+
 
 
 logger = logging.getLogger(__name__)
 
 
-class MongoHelper:
+class BaseClient:
+    def connect(self, **kwargs):
+        raise NotImplementedError("connect() not implemented")
+
+    def get_edgar_path(self, **kwargs):
+        raise NotImplementedError("get_edgar_path() not implemented")
+
+    def save_edgar_path(self, path: list):
+        raise NotImplementedError("save_edgar_path() not implemented")
+
+    def update_edgar_path(self, filter: dict, update: dict):
+        raise NotImplementedError("update_edgar_path() not implemented")
+
+    def update_companie(self, filter: dict, update: dict):
+        raise NotImplementedError("update_companie() not implemented")
+
+    def save_report_positions(self, bulk: list):
+        raise NotImplementedError("save_report_positions() not implemented")
+
+    def save_segments(self, bulk: list):
+        raise NotImplementedError("save_segments() not implemented")
+
+
+class MongoHelper(BaseClient):
     """manage mongoDB for SecDigger"""
 
     def __init__(self):
@@ -19,7 +45,6 @@ class MongoHelper:
         self.col_reports = {}
         self.col_clean_financial_positions = {}
         self.connected = False
-        self.status = 'Not connected to database!'
 
     def connect(
         self,
@@ -29,34 +54,19 @@ class MongoHelper:
         username=None,
         password=None,
         authSource=None,
-        ssh_address=None,
-        ssh_username=None,
-        ssh_password=None,
         name_collection='stockscreener',
         name_path='paths',
         name_companies='companies',
         name_reports='reports',
         name_segments='segments',
         name_transformed='financial_positions'
-    ):
+    ) -> None:
         ''' TODO: mongodb-connection-string and password username '''
 
         credentials = {
-            'host': host
+            'host': host,
+            'port': port
         }
-
-        if ssh_address is not None:
-            logger.info("Use ssh tunnel: %s" % ssh_address)
-            server = SSHTunnelForwarder(
-                ssh_address_or_host=ssh_address,
-                ssh_username=ssh_username,
-                ssh_password=ssh_password,
-                remote_bind_address=(host, port)
-            )
-            server.start()
-            credentials['port'] = server.local_bind_port
-        else:
-            credentials['port'] = port
 
         if username is not None:
             credentials['username'] = username
@@ -69,7 +79,7 @@ class MongoHelper:
             conn = MongoClient(**credentials)
         except ServerSelectionTimeoutError as err:
             logger.error("Could not connect to MongoDB: %s" % err)
-            quit()
+            sys.exit()
 
         db = conn[name_collection]
         self.col_edgar_path = db[name_path]
@@ -90,7 +100,7 @@ class MongoHelper:
                     ('instant',  ASCENDING),
                     ('value',  ASCENDING),
                     ('duration',  ASCENDING)])
-                
+
                 self.col_companies.create_index([
                     ('cik', ASCENDING)], unique=True)
 
@@ -105,14 +115,67 @@ class MongoHelper:
                 logger.error("Could not create indices: %s" % err)
                 logger.error("Check your credentials: %s" % credentials)
                 quit()
-        
+
         self.connected = True
 
         logger.info('database connection successful')
 
+    def get_edgar_path(self, cik=None, ticker=None,
+                       name=None, name_regex=None, limit=0) -> list:
+
+        query = {}
+        query['log'] = {'$eq': None}
+        query['form'] = {'$in': ['10-K', '10-Q']}
+
+        if cik:
+            query['cik'] = {'$in': [cik] if type(cik) == str else cik}
+        elif ticker:
+            query['ticker'] = {'$in': [ticker]
+                               if type(ticker) == str else ticker}
+        elif name:
+            query['name'] = {'$in': [name] if type(name) == str else name}
+        elif name_regex:
+            regx = [re.compile(r, re.IGNORECASE) for r in name_regex]
+            query['name'] = {'$in': regx}
+        else:
+            sys.exit("no company identifier")
+
+        logger.debug('path query: %s' % query)
+        
+        return self.col_edgar_path.find(query).limit(limit)
+
+    def save_edgar_path(self, paths: list):
+        self.col_edgar_path.insert_many(paths, ordered=False)
+        
+    def update_edgar_path(self, filter, update):
+        try:
+            self.col_edgar_path.update_one(filter, update, False, True)
+        except WriteError as err:
+            logger.error('Please check the query: WriteError %s' % err)
+            quit()
+
+    def update_companie(self, filter, update):
+        try:
+            self.col_companies.update_one(filter, update, upsert=True)
+        except WriteError as err:
+            logger.error('Please check the query: WriteError %s' % err)
+            quit()
+
+    def save_report_positions(self, bulk):
+        try:
+            self.col_reports.bulk_write(bulk, ordered=False)
+        except BulkWriteError as err:
+            logger.debug(err.details)
+
+    def save_segments(self, bulk):
+        try:
+            self.col_segments.bulk_write(bulk, ordered=False)
+        except BulkWriteError as err:
+            logger.debug(err.details)
+
     def __str__(self):
         if not self.connected:
-            return self.status
+            return "Not connected!"
         else:
             return "Connected successfully!"
 
@@ -191,7 +254,6 @@ class MongoHelper:
 
         if len(list(cursor)):
             logger.info('transformation successful')
-
 
 
 if __name__ == '__main__':
