@@ -5,7 +5,6 @@
     "**/__pycache__": true
   },
   "editor.glyphMargin": true,
-  "gitlens.codeLens.enabled": false,
   "[markdown]": {
     "editor.tabSize": 2
   },
