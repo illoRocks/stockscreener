@@ -6,7 +6,6 @@ Created on 04.02.2017
 '''
 import datetime
 import requests
-import pymongo
 import io
 from collections import defaultdict
 from urllib.request import urlopen
@@ -118,12 +117,8 @@ class SecIdx(DBClient):
                              'log': None})
 
             logger.info("write to database...")
-            try:
-                logging.info('ignore errors!')
-                self.db_save_edgar_path(bulk)
-            except pymongo.errors.BulkWriteError:
-                # logging.error('BulkWriteError: %s' % err.details)
-                pass
+            
+            self.db_save_edgar_path(bulk)
 
             logging.debug("saved all paths")
 

@@ -2,14 +2,17 @@ import logging
 import sys
 from pprint import pprint
 from sshtunnel import SSHTunnelForwarder
+from collections import defaultdict
 
 from stockscreener.database.mongo_db import MongoHelper
+from stockscreener.database.base_client import BaseClient
+from stockscreener.interfaces import FillingList
 
 
 logger = logging.getLogger(__name__)
 
 
-class DBClient:
+class DBClient(BaseClient):
     """manage Databases for SecDigger"""
 
     def __init__(self):
@@ -23,10 +26,10 @@ class DBClient:
         if self.connected:
             logger.info("Allready connected")
 
-        ssh_address = kwargs.pop('ssh_address')
-        ssh_username = kwargs.pop('ssh_username')
-        ssh_password = kwargs.pop('ssh_password')
-        if ssh_address:
+        if 'ssh_address' in kwargs:
+            ssh_address = kwargs.pop('ssh_address')
+            ssh_username = kwargs.pop('ssh_username')
+            ssh_password = kwargs.pop('ssh_password')
             logger.info("Use ssh tunnel: %s" % ssh_address)
             server = SSHTunnelForwarder(
                 ssh_address_or_host=ssh_address,
@@ -61,3 +64,25 @@ class DBClient:
 
     def db_save_segments(self, bulk: list):
         self.client.save_segments(bulk)
+
+    def get_companies(self, filter={}, limit=0) -> list:
+        return self.client.get_companies(filter, limit)
+
+    def get_one_company(self, filter={}, limit=0) -> dict:
+        for item in self.client.get_companies(filter, limit):
+            return item
+
+    def get_fillings(self, cik) -> FillingList:
+        f = self.client.get_fillings({'company': cik})
+        return FillingList(f)
+
+
+if __name__ == "__main__":
+    from pprint import pprint
+
+    client = DBClient()
+    client.connect()
+
+    fillings = client.get_fillings({'company': '21344'})
+
+    pprint(fillings)

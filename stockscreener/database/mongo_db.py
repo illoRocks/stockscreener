@@ -1,4 +1,7 @@
-from pymongo import MongoClient, ASCENDING
+from pymongo import MongoClient, ASCENDING, IndexModel
+from bson.objectid import ObjectId
+from pymongo.command_cursor import CommandCursor
+
 from pymongo.errors import BulkWriteError, WriteError, ServerSelectionTimeoutError, OperationFailure
 import json
 import logging
@@ -8,32 +11,38 @@ import os
 import sys
 import re
 
+from stockscreener.database.base_client import BaseClient
 
 
 logger = logging.getLogger(__name__)
 
+indices = {
+    'reports': [
+        IndexModel([('company', ASCENDING),
+                    ('label', ASCENDING),
+                    ('updated',  ASCENDING),
+                    ('startDate',  ASCENDING),
+                    ('endDate',  ASCENDING),
+                    ('instant',  ASCENDING),
+                    ('value',  ASCENDING),
+                    ('duration',  ASCENDING)])
+    ],
+    'companies': [
+        IndexModel([('cik', ASCENDING)], unique=True),
+        IndexModel([('cik', ASCENDING)], unique=True)
+    ],
+    'edgar_path': [
+        IndexModel([('_id', ASCENDING),
+                    ('path', ASCENDING)],
+                   unique=True),
+        IndexModel([('path', ASCENDING)], unique=True)
+    ]
+}
 
-class BaseClient:
-    def connect(self, **kwargs):
-        raise NotImplementedError("connect() not implemented")
 
-    def get_edgar_path(self, **kwargs):
-        raise NotImplementedError("get_edgar_path() not implemented")
-
-    def save_edgar_path(self, path: list):
-        raise NotImplementedError("save_edgar_path() not implemented")
-
-    def update_edgar_path(self, filter: dict, update: dict):
-        raise NotImplementedError("update_edgar_path() not implemented")
-
-    def update_companie(self, filter: dict, update: dict):
-        raise NotImplementedError("update_companie() not implemented")
-
-    def save_report_positions(self, bulk: list):
-        raise NotImplementedError("save_report_positions() not implemented")
-
-    def save_segments(self, bulk: list):
-        raise NotImplementedError("save_segments() not implemented")
+def get_first_element(cursor: list) -> dict:
+    for result in cursor:
+        return result
 
 
 class MongoHelper(BaseClient):
@@ -61,7 +70,7 @@ class MongoHelper(BaseClient):
         name_segments='segments',
         name_transformed='financial_positions'
     ) -> None:
-        ''' TODO: mongodb-connection-string and password username '''
+        ''' TODO: mongodb-connection-string '''
 
         credentials = {
             'host': host,
@@ -90,26 +99,9 @@ class MongoHelper(BaseClient):
 
         if init:
             try:
-                # TODO weiteren index für schnelle updates anlegen
-                self.col_reports.create_index([
-                    ('company', ASCENDING),
-                    ('label', ASCENDING),
-                    ('updated',  ASCENDING),
-                    ('startDate',  ASCENDING),
-                    ('endDate',  ASCENDING),
-                    ('instant',  ASCENDING),
-                    ('value',  ASCENDING),
-                    ('duration',  ASCENDING)])
-
-                self.col_companies.create_index([
-                    ('cik', ASCENDING)], unique=True)
-
-                self.col_edgar_path.create_index([
-                    ('_id', ASCENDING),
-                    ('path', ASCENDING)], unique=True)
-
-                self.col_edgar_path.create_index([
-                    ('path', ASCENDING)], unique=True)
+                self.col_edgar_path.create_indexes(indices['edgar_path'])
+                self.col_reports.create_indexes(indices['reports'])
+                self.col_companies.create_indexes(indices['companies'])
 
             except OperationFailure as err:
                 logger.error("Could not create indices: %s" % err)
@@ -141,12 +133,16 @@ class MongoHelper(BaseClient):
             sys.exit("no company identifier")
 
         logger.debug('path query: %s' % query)
-        
+
         return self.col_edgar_path.find(query).limit(limit)
 
     def save_edgar_path(self, paths: list):
-        self.col_edgar_path.insert_many(paths, ordered=False)
-        
+        try:
+            self.col_edgar_path.insert_many(paths, ordered=False)
+        except BulkWriteError:
+            # logging.error('BulkWriteError: %s' % err.details)
+            pass
+
     def update_edgar_path(self, filter, update):
         try:
             self.col_edgar_path.update_one(filter, update, False, True)
@@ -173,11 +169,95 @@ class MongoHelper(BaseClient):
         except BulkWriteError as err:
             logger.debug(err.details)
 
-    def __str__(self):
-        if not self.connected:
-            return "Not connected!"
-        else:
-            return "Connected successfully!"
+    def get_companies(self, filter={}, limit=0):
+        if '_id' in filter:
+            filter['_id'] = ObjectId(filter['_id'])
+        # logger.debug("get company -> filter: %s limit: %s" % (filter, limit))
+        fields = {'cik': 1, 'EntityRegistrantName': 1, 'CurrentFiscalYearEndDate': 1,
+                  'NumberOfDocuments': 1, 'lastDocument': 1}
+        cursor = self.col_companies.find(filter, fields).limit(limit)
+        return list(cursor)
+
+    def get_fillings(self, filter={}, fields=None, segment=False):
+        pipeline = [
+            {'$group':
+             {'_id': {
+                 'company': "$company",
+                 'label': "$label",
+                 'segment': "$segment",
+                 'instant': "$instant",
+                 'startDate': "$startDate",
+                 'endDate': "$endDate"
+             },
+                 'lastSalesDate': {'$last': "$updated"},
+                 'entries': {'$push': "$$ROOT"}}
+             },
+            {'$replaceRoot': {'newRoot': {'$arrayElemAt': ["$entries", 0]}}},
+            {'$match': {'segment': {'$exists': segment}}},
+            {'$sort': {'periodEnd': -1, 'label': 1}}
+        ]
+        pipeline.append({'$match': filter})
+        
+        cursor = self.col_reports.aggregate(pipeline)
+
+        # cursor = self.col_reports.find(filter, fields).limit(limit)
+        return list(cursor)
+
+    # def get_company(self, id):
+    #     pipeline = [
+    #         {"$group": {
+    #             "_id": {
+    #                 "company": "$company",
+    #                 "label": "$label",
+    #                 "segment": "$segment",
+    #                 "instant": "$instant",
+    #                 "startDate": "$startDate",
+    #                 "endDate": "$endDate"
+    #             },
+    #             "lastSalesDate": {"$last": "$updated"},
+    #             "entries": {"$push": "$$ROOT"}}
+    #          },
+    #         {"$replaceRoot": {"newRoot": {"$arrayElemAt": ["$entries", 0]}}},
+    #         {"$match": {"segment": {"$exists": False}}},
+    #         {"$addFields": {"periodEnd": {
+    #             "$ifNull": ["$instant", "$endDate"]}}},
+    #         {"$lookup": {
+    #             "from": "companies",
+    #             "localField": "company",
+    #             "foreignField": "cik",
+    #             "as": "meta"
+    #         }},
+    #         {"$match": {"meta": {"$ne": []}}},
+    #         {"$unwind": "$meta"},
+    #         {"$project": {"meta.reports": 0}},
+    #         {"$group": {
+    #             "_id": "$meta",
+    #             "financial_positions": {
+    #                 "$push": {
+    #                     "label": "$label",
+    #                     "value": "$value",
+    #                     "instant": "$instant",
+    #                     "startDate": "$startDate",
+    #                     "endDate": "$endDate",
+    #                     "periodEnd": "$periodEnd",
+    #                     "segment": "$segment"
+    #                 }}
+    #         }},
+    #         {"$project": {
+    #             "_id": "$_id._id",
+    #             "cik": "$_id.cik",
+    #             "CurrentFiscalYearEndDate": "$_id.CurrentFiscalYearEndDate",
+    #             "EntityRegistrantName": "$_id.EntityRegistrantName",
+    #             "NumberOfDocuments": "$_id.NumberOfDocuments",
+    #             "lastDocument": "$_id.lastDocument",
+    #             "lastUpdate": "$_id.lastUpdate",
+    #             "financial_positions": "$financial_positions"
+    #         }},
+    #         {"$match": {"_id": {"$eq": ObjectId(id)}}}
+    #     ]
+
+    #     cursor = self.col_reports.aggregate(pipeline)
+    #     return get_first_element(list(cursor))
 
     def transform_collection(self):
         logger.info('transform collection...')
@@ -254,6 +334,12 @@ class MongoHelper(BaseClient):
 
         if len(list(cursor)):
             logger.info('transformation successful')
+
+    def __str__(self):
+        if not self.connected:
+            return "Not connected!"
+        else:
+            return "Connected successfully!"
 
 
 if __name__ == '__main__':
