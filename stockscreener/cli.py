@@ -1,4 +1,4 @@
-#!/usr/bin/env python3.5
+#!/usr/bin/env python3.6
 
 """
 python3 -m stockscreener --config config.ini -init
@@ -86,7 +86,7 @@ p.add_argument('--db_reports',
 
 # Identifier
 
-p.add_argument('-cik', nargs='+', default='796343',
+p.add_argument('--cik', nargs='+', default='796343',
                help='valid central index key. one or more strings')
 
 p.add_argument('--cik_path',
@@ -95,7 +95,7 @@ p.add_argument('--cik_path',
 p.add_argument('-name', nargs='+',
                help='valid company name or regex "/coca cola/i". one or more')
 
-p.add_argument('-nameRegex', nargs='+',
+p.add_argument('-name_regex', nargs='+',
                help='regex like "^coca cola". one or more')
 
 p.add_argument('--transform_after', action="store_false",
@@ -174,12 +174,12 @@ def main():
     key = {}
     if options.name:
         key['name'] = options.name
-    elif options.nameRegex:
-        key['name_regex'] = options.nameRegex
+    elif options.name_regex:
+        key['name_regex'] = options.name_regex
     elif options.cik_path:
-        key['cik_path'] = options.cik_path
-    else:
         key['cik'] = options.cik
+    else:
+        key['cik_path'] = options.cik_path
 
     sd.get_files_from_web(
         **key,
