@@ -4,7 +4,6 @@
   // Weitere Informationen finden Sie unter https://go.microsoft.com/fwlink/?linkid=830387
   "version": "0.2.0",
   "configurations": [
-
     {
       "name": "stockscreener module",
       "type": "python",
@@ -12,8 +11,16 @@
       "pythonPath": "${config:python.pythonPath}",
       "module": "stockscreener",
       "console": "integratedTerminal"
-      
-    },{
+    },
+    {
+      "name": "run current file as module",
+      "type": "python",
+      "request": "launch",
+      "pythonPath": "${config:python.pythonPath}",
+      "module": "stockscreener.${fileBasenameNoExtension}",
+      "console": "integratedTerminal"
+    },
+    {
       "name": "Python cli",
       "type": "python",
       "request": "launch",
@@ -22,13 +29,12 @@
       "program": "${workspaceFolder}/scripts/cli.py",
       "cwd": "${workspaceFolder}",
       "args": [
-        "-cikPath=dowjones.txt", 
+        "-cikPath=dowjones.txt",
         "-limit=1",
         "--skipIndex",
         "--transform_after"
       ],
-      "env": {
-      },
+      "env": {},
       "envFile": "${workspaceFolder}/.env"
     },
     {
