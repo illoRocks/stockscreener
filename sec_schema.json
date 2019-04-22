@@ -1,0 +1,95 @@
+{
+    "labels": {
+        "income": {
+            "desc": [
+                "income sheet"
+            ],
+            "revenueTotal": [
+                "Revenues"
+            ],
+            "costOfRevenue": [
+                "CostOfGoodsAndServicesSold"
+            ],
+            "sellingGeneralAndAdministrative": [
+                "SellingGeneralAndAdministrativeExpense"
+            ],
+            "operatingExpensesOther": [],
+            "researchAndDevelopment": [],
+            "incomeBeforeInterestAndTaxAndAmortization": [],
+            "incomeBeforeInterestAndTax": [],
+            "interestExpense": [],
+            "incomeBeforeTax": [],
+            "incomeTaxExpense": [],
+            "incomeNet": []
+        },
+        "balance": {
+            "desc": [
+                "balance sheet"
+            ],
+            "Goodwill": [
+                "Goodwill"
+            ],
+            "AssetsCurrent": [
+                "AssetsCurrent"
+            ],
+            "CashAndCashEquivalents": [
+                "CashAndCashEquivalentsAtCarryingValue"
+            ],
+            "OtherShortTermInvestments": [
+                "OtherShortTermInvestments"
+            ],
+            "ReceivableNet": [
+                "AccountsReceivableNetCurrent"
+            ],
+            "Inventories": [
+                "InventoryNet"
+            ],
+            "AssetsTotal": [
+                "Assets"
+            ],
+            "AccountsPayable": [
+                "AccountsPayable"
+            ],
+            "ShortTermDebt": [
+                "LongTermDebtCurrent"
+            ],
+            "LiabilitiesCurrent": [
+                "LiabilitiesCurrent"
+            ],
+            "LongTermDebt": [
+                "LongTermDebt"
+            ],
+            "MinorityInterest": [
+                "MinorityInterest"
+            ],
+            "StockholdersEquity": [
+                "StockholdersEquity"
+            ],
+            "liabilitiesAndStockholdersEquity": [
+                "liabilitiesAndStockholdersEquity"
+            ]
+        },
+        "cashflow": {
+            "desc": [
+                "cashflow"
+            ]
+        },
+        "shares": {
+            "desc": [
+                "shares"
+            ],
+            "StockShares": [
+                "EntityCommonStockSharesOutstanding"
+            ]
+        }
+    },
+    "settings": {
+        "quarter": {
+            "q4": 360,
+            "q3": 270,
+            "q2": 180,
+            "q1": 90
+        }
+    },
+    "segments": []
+}
