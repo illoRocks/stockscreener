@@ -21,7 +21,10 @@ REQUIREMENTS = [
     'pymongo',
     'aiohttp',
     'sshtunnel',
-    'ConfigArgParse'
+    'ConfigArgParse',
+    'bson',
+    'Flask',
+    'Flask-WTF'
 ]
 
 setup(

@@ -1,0 +1,35 @@
+{% extends 'base.html' %}
+
+{% block header %}
+  <h1>Tabelle</h1>
+{% endblock %}
+
+{% block content %}
+    <h1>Overview</h1>
+
+    <div>
+        <table>
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>CIK</th>
+                    <th>Number of documents</th>
+                    <th>latest document</th>
+                </tr>
+            </thead>
+            <tbody>
+            {% for company in companies %}
+                <tr>
+                    <td> {{ company.EntityRegistrantName }} </td>
+                    <td> {{ company.cik }} </td>
+                    <td> {{ company.NumberOfDocuments }} </td>
+                    <td> {{ company.lastDocument }} </td>
+                    <td> <a href="/id/{{ company._id }}">show</a> </td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+
+{% endblock %}

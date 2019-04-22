@@ -1,0 +1,1 @@
+from stockscreener.server.server import app

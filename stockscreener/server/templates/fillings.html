@@ -1,0 +1,154 @@
+{% extends 'base.html' %}
+
+{% block header %}
+<h1>Tabelle</h1>
+{% endblock %}
+
+{% block content %}
+<h1>{{ company.EntityRegistrantName }}</h1>
+<p>CIK: {{ company.cik }}</p>
+<p>CurrentFiscalYearEndDate: {{ company.CurrentFiscalYearEndDate }}</p>
+<p>NumberOfDocuments: {{ company.NumberOfDocuments }}</p>
+<p>_id: {{ company._id }}</p>
+<p>lastUpdate: {{ company.lastUpdate }}</p>
+<p>lastDocument: {{ company.lastDocument }}</p>
+
+<h2>Shares</h2>
+<div>
+    <table>
+        <thead>
+            <tr>
+                <th>Bezeichnung</th>
+                {% for date in shares.dates %}
+                <th>{{ date }}</th>
+                {% endfor %}
+            </tr>
+        </thead>
+        <tbody>
+            {% for filling in shares.values() %}
+            <tr>
+                <td> {{ filling.label }} </td>
+                {% for date in shares.dates %}
+                <td> {{ filling.filter(date=date) }} </td>
+                {% endfor %}
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+
+<h2>Balance</h2>
+<div>
+    <table>
+        <thead>
+            <tr>
+                <th>Form</th>
+                <th>Bezeichnung Richtig</th>
+                <th>Bezeichnung in Company</th>
+                {% for date in balance.dates %}
+                <th>{{ date }}</th>
+                {% endfor %}
+            </tr>
+        </thead>
+        <tbody>
+            {% for label in sec_schema.get_labels(sec_schema.BALANCE) %}
+            <tr>
+                <form action="" method="post" novalidate>
+                    <td>{{ form.submit() }} <p hidden>{{ form.form(value=sec_schema.BALANCE) }}</p></td>
+                    <td>{{ form.label_in_json(size=25, value=label) }}</td>
+                    <td>{{ form.label_company(size=10, value="") }}</td>
+                </form>
+                {% for date in balance.dates %}
+                <td>{{ balance.filter(label=label).filter_one(date=date) }}</td>
+                {% endfor %}
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<h2>Balance_All</h2>
+<div>
+    <table>
+        <thead>
+            <tr>
+                <th>Bezeichnung</th>
+                {% for date in balance_all.dates %}
+                <th>{{ date }}</th>
+                {% endfor %}
+            </tr>
+        </thead>
+        <tbody>
+            {% for filling in balance_all.values() %}
+            <tr>
+                <td> {{ filling.label }} </td>
+                {% for date in balance_all.dates %}
+                <td> {{ filling.filter(date=date) }} </td>
+                {% endfor %}
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+
+
+<h2>Income</h2>
+<div>
+    <table>
+        <thead>
+            <tr>
+                <th>Form</th>
+                <th>Bezeichnung Richtig</th>
+                <th>Bezeichnung in Company</th>
+                {% for date in income.dates %}
+                <th>{{ date }}</th>
+                {% endfor %}
+            </tr>
+        </thead>
+        <tbody>
+            {% for label in sec_schema.get_labels(sec_schema.INCOME) %}
+            {% set filling = income.filter(label=label) %}
+            <tr>
+                <form action="" method="post" novalidate>
+                    <td>{{ form.submit() }} <p hidden>{{ form.form(value=sec_schema.INCOME) }}</p></td>
+                    <td>{{ form.label_in_json(size=25, value=label) }}</td>
+                    <td>{{ form.label_company(size=10, value="") }}</td>
+                </form>
+                {% for date in income.dates %}
+                <td>{{ filling.filter_one(date=date) }}</td>
+                {% endfor %}
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<h2>income_All</h2>
+<div>
+    <table>
+        <thead>
+            <tr>
+                <th>Bezeichnung</th>
+                {% for date in income_all.dates %}
+                <th>{{ date }}</th>
+                {% endfor %}
+            </tr>
+        </thead>
+        <tbody>
+            {% for filling in income_all.values() %}
+            <tr>
+                <td> {{ filling.label }} </td>
+                {% for date in income_all.dates %}
+                <td> {{ filling.filter(date=date) }} </td>
+                {% endfor %}
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+
+
+{% endblock %}
